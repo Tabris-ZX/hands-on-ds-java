@@ -1,4 +1,4 @@
 package BoyuAI.trainsys;
 
-public class init {
+public class Main {
 }
