@@ -4,7 +4,7 @@ package BoyuAI.trainsys.DataStructure;
  * 链式队列实现
  * @param <T> 队列元素类型
  * */
-public class LinkQueue<T> extends Queue<T> {
+public class LinkQueue<T> implements Queue<T> {
     // 队列结点
     private class Node<T> {
         T data;

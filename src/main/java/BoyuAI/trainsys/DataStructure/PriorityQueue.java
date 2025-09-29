@@ -4,7 +4,7 @@ package BoyuAI.trainsys.DataStructure;
  * 优先级队列（最小堆）
  * @param <T> 队列元素类型，必须实现Comparable接口
  */
-public class PriorityQueue<T extends Comparable<T>> extends Queue<T> {
+public class PriorityQueue<T extends Comparable<T>> implements Queue<T> {
     private int currentSize; // 队列长度
     private T[] array; // 存储队列元素的数组
     private int maxSize; // 容量

@@ -1,13 +1,11 @@
 package BoyuAI.trainsys.DataStructure;
 
 
-// TODO：队列
-
 /**
  * 抽象基类
  * @param <T> 队列元素类型
  * */
-public abstract class Queue<T> {
+public  interface Queue<T> {
     // 判断队列是否为空
     // @return true表示空，false为非空
     public abstract boolean isEmpty();
