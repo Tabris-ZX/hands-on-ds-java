@@ -1,7 +1,7 @@
 package BoyuAI.trainsys.DataStructure;
 
 
-// TODO: seqList
+
 public class seqList<T> implements List<T>{
     T[] data;
     int currentLength;
