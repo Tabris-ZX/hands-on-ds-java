@@ -1,17 +1,17 @@
 package boyuai.trainsys.datastructure;
 
-public class seqList<T> implements List<T>{
+public class SeqList<T> implements List<T>{
     T[] data;
     int currentLength;
     int maxSize;
 
-    public seqList (int initSize) { // 有参构造，初始化顺序表大小为initSize
-        this.currentLength = initSize;
+    public SeqList(int initSize) { // 有参构造，初始化顺序表大小为initSize
+        this.currentLength = 0; // 修正：初始有效元素应为0
         this.maxSize = initSize;
         this.data = (T[]) new Object[initSize];
     }
 
-    public seqList () { // 空参构造，初始化顺序表大小为10
+    public SeqList() { // 空参构造，初始化顺序表大小为10
         this.currentLength = 0;
         this.maxSize = 10;
         this.data = (T[]) new Object[10];
@@ -51,7 +51,7 @@ public class seqList<T> implements List<T>{
     @Override
     public T visit(int i) {
         if (i >= 0 && i < currentLength) {
-            return data[i];
+            return  data[i];
         }
         return null;
     }
@@ -122,5 +122,10 @@ public class seqList<T> implements List<T>{
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    public void set(int i, T x) {
+        if (i < 0 || i >= currentLength) throw new IndexOutOfBoundsException();
+        data[i] = x;
     }
 }

@@ -1,7 +1,6 @@
 package boyuai.trainsys.datastructure;
 
 
-// TODO: 图
 public interface Graph<T> {
     public void insert(int x, int y,  T w);
     public void remove(int x, int y);

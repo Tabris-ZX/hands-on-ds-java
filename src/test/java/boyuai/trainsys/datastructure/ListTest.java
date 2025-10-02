@@ -2,7 +2,7 @@ package boyuai.trainsys.datastructure;
 
 public class ListTest {
     public static void main(String[] args) {
-        seqList<Integer> list = new seqList<>(5);
+        SeqList<Integer> list = new SeqList<>(5);
         list.insert(0, 1);
         list.insert(1, 2);
         list.insert(2, 3);

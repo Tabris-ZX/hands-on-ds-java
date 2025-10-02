@@ -2,7 +2,6 @@ package boyuai.trainsys.datastructure;
 
 import java.util.ArrayList;
 
-// TODO：邻接表图的实现
 public class AdjListGraph<T> implements Graph<T>{
     // 创建一个结点类
     public class edgeNode<T> {

@@ -33,4 +33,11 @@ public class Pair<K, V> {
     public boolean checkEqual(Pair<K, V> lhs, Pair<K, V> rhs) {
         return lhs.key.equals(rhs.key) && lhs.value.equals(rhs.value);
     }
+
+    public V getValue() {
+        return value;
+    }
+    public K getKey() {
+        return key;
+    }
 }
