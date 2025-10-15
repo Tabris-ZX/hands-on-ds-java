@@ -4,7 +4,6 @@ import boyuai.trainsys.datastructure.BPlusTree;
 import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.info.UserInfo;
 import boyuai.trainsys.util.Types.UserID;
-import java.io.IOException;
 
 /**
  * 用户管理器
@@ -40,7 +39,7 @@ public class UserManager {
      */
     public boolean existUser(UserID userID) {
         SeqList<UserInfo> result = userInfoTable.find(userID.value());
-        return !result.isEmpty();
+        return !result.Empty();
     }
 
     /**
@@ -50,7 +49,7 @@ public class UserManager {
      */
     public UserInfo findUser(UserID userID) {
         SeqList<UserInfo> result = userInfoTable.find(userID.value());
-        if (!result.isEmpty()) {
+        if (!result.Empty()) {
             return result.visit(0);
         }
         return null;
@@ -105,10 +104,6 @@ public class UserManager {
      * 关闭管理器（保存数据）
      */
     public void close() {
-        try {
-            userInfoTable.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        userInfoTable.close();
     }
 }
