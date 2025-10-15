@@ -1,78 +1,58 @@
 package boyuai.trainsys.util;
 
 import boyuai.trainsys.config.Config;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Objects;
 
-
 /**
- * 定长字符串类，用于代替动态 String，方便索引/比较
- * 从源代码的 Utils.h 拆分下来
- *
+ * 定长字符串类
+ * 用于作为索引，替代 C++ 中的定长字符数组
  */
-public class FixedString {
-    private final char[] index = new char[Config.MAX_STRING_LENGTH];
+@Getter
+@Setter
+public class FixedString implements Comparable<FixedString> {
+    private final String value;
 
-    public FixedString() {}
+    public FixedString() {
+        this.value = "";
+    }
 
     public FixedString(String str) {
-        set(str);
+        if (str == null) {
+            this.value = "";
+        } else if (str.length() > Config.MAX_STRING_LENGTH) {
+            this.value = str.substring(0, Config.MAX_STRING_LENGTH);
+        } else {
+            this.value = str;
+        }
     }
 
     public FixedString(FixedString other) {
-        System.arraycopy(other.index, 0, this.index, 0, Config.MAX_STRING_LENGTH);
-    }
-
-    public void set(String str) {
-        char[] chars = str.toCharArray();
-        int len = Math.min(chars.length, Config.MAX_STRING_LENGTH);
-        System.arraycopy(chars, 0, index, 0, len);
-        if (len < Config.MAX_STRING_LENGTH) {
-            for (int i = len; i < Config.MAX_STRING_LENGTH; i++) {
-                index[i] = '\0';
-            }
-        }
+        this.value = other.value;
     }
 
     @Override
     public String toString() {
-        return new String(index).trim();
+        return value;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        //模式变量 检查和转换
-        if (!(o instanceof FixedString that)) return false;
-        return this.toString().equals(that.toString());
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        FixedString that = (FixedString) obj;
+        return Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.toString());
+        return Objects.hash(value);
     }
 
-    /**
-     * 等同于 ">"
-     */
-    public boolean greaterThan(FixedString other) {
-        return this.toString().compareTo(other.toString()) > 0;
-    }
-    /**
-     * 等同于 ">="
-     */
-    public boolean greaterOrEqual(FixedString other) {
-        return this.toString().compareTo(other.toString()) >= 0;
-    }
-    /**
-     * 等同于 "<"
-     */
-    public boolean lessThan(FixedString other) {
-        return this.toString().compareTo(other.toString()) < 0;
-    }
-    /**
-     * 等同于 "<="
-     */
-    public boolean lessOrEqual(FixedString other) {
-        return this.toString().compareTo(other.toString()) <= 0;
+    @Override
+    public int compareTo(FixedString other) {
+        return this.value.compareTo(other.value);
     }
 }

@@ -8,6 +8,8 @@
     <artifactId>hands-on-ds</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <description>火车票务管理系统 - 从C++翻译为Java</description>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>

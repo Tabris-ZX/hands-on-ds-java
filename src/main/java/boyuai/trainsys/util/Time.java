@@ -3,6 +3,7 @@ package boyuai.trainsys.util;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Comparator;
 import java.util.Objects;
 
 /**
@@ -12,7 +13,7 @@ import java.util.Objects;
  */
 @Setter
 @Getter
-public class Time {
+public class Time implements Comparable<Time> {
     private final Date date; // 所属日期
     private int hour;  // 小时（24小时制）
     private int min;   // 分钟
@@ -176,5 +177,17 @@ public class Time {
     @Override
     public String toString() {
         return String.format("%02d:%02d %s", hour, min, date.toString());
+    }
+
+    @Override
+    public int compareTo(Time other) {
+        int dateCompare = this.date.compareTo(other.date);
+        if (dateCompare != 0) return dateCompare;
+
+        if (this.hour != other.hour) {
+            return Integer.compare(this.hour, other.hour);
+        }
+
+        return Integer.compare(this.min, other.min);
     }
 }

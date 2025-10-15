@@ -12,7 +12,7 @@ import java.util.Objects;
  */
 @Getter
 @Setter
-public class Date {
+public class Date implements Comparable<Date> {
     // 每个月的天数
     private static final int[] MDAY_NUMBER = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     // 每个月前缀天数总和
@@ -127,6 +127,13 @@ public class Date {
         return mon == date.mon && mday == date.mday;
     }
 
+    @Override
+    public int compareTo(Date other) {
+        if (this.mon != other.mon) {
+            return Integer.compare(this.mon, other.mon);
+        }
+        return Integer.compare(this.mday, other.mday);
+    }
 
     /**
      * 判断是否早于另一个日期
