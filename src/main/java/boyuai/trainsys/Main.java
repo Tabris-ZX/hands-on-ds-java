@@ -2,6 +2,8 @@ package boyuai.trainsys;
 
 import boyuai.trainsys.core.TrainSystem;
 import boyuai.trainsys.util.CommandParser;
+
+import java.io.File;
 import java.util.Scanner;
 
 /**
@@ -11,6 +13,8 @@ public class Main {
 
     public static void main(String[] args) {
         // 初始化系统（实例化）
+        System.out.println("当前工作目录: " + new File("").getAbsolutePath());
+
         TrainSystem system = new TrainSystem();
         CommandParser parser = new CommandParser(system);
 
@@ -26,6 +30,10 @@ public class Main {
             command = scanner.nextLine().trim();
 
             System.out.println("执行命令: " + command);
+            if (command.equals("help")) {
+                printHelp();
+                continue;
+            }
 
             if (parser.parseCommand(command) == 1) { // 读入到exit指令
                 break;

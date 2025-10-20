@@ -7,8 +7,6 @@ import java.util.Comparator;
  * B+树实现（持久化存储）
  * @param <KeyType> 键类型
  * @param <ValueType> 值类型
- * @param <M> 内部节点最大子节点数
- * @param <L> 叶子节点最大数据数
  */
 public class BPlusTree<KeyType, ValueType> 
         implements StorageSearchTable<KeyType, ValueType> {
@@ -85,7 +83,6 @@ public class BPlusTree<KeyType, ValueType>
      * @param l 叶子节点最大数据数
      * @param comparator 键比较器
      */
-    @SuppressWarnings("unchecked")
     public BPlusTree(String name, int m, int l, Comparator<KeyType> comparator) {
         this.m = m;
         this.l = l;
@@ -201,7 +198,7 @@ public class BPlusTree<KeyType, ValueType>
         readTreeNode(root, rootPos);
         
         // 读取被删除的树节点
-        treeNodeFile.seek(headerLengthOfTreeNodeFile + (rearTreeNode + 1) * getTreeNodeSize());
+        treeNodeFile.seek(headerLengthOfTreeNodeFile + (long) (rearTreeNode + 1) * getTreeNodeSize());
         int treeNodeEmptySize = treeNodeFile.readInt();
         for (int i = 0; i < treeNodeEmptySize; i++) {
             emptyTreeNode.pushBack(treeNodeFile.readInt());
@@ -213,7 +210,7 @@ public class BPlusTree<KeyType, ValueType>
         sizeData = leafFile.readInt();
         
         // 读取被删除的叶子节点
-        leafFile.seek(headerLengthOfLeafFile + (rearLeaf + 1) * getLeafSize());
+        leafFile.seek(headerLengthOfLeafFile + (long) (rearLeaf + 1) * getLeafSize());
         int leafEmptySize = leafFile.readInt();
         for (int i = 0; i < leafEmptySize; i++) {
             emptyLeaf.pushBack(leafFile.readInt());
@@ -238,7 +235,7 @@ public class BPlusTree<KeyType, ValueType>
      * 写入树节点到文件
      */
     private void writeTreeNode(TreeNode node) throws IOException {
-        treeNodeFile.seek(headerLengthOfTreeNodeFile + node.pos * getTreeNodeSize());
+        treeNodeFile.seek(headerLengthOfTreeNodeFile + (long) node.pos * getTreeNodeSize());
         treeNodeFile.writeBoolean(node.isBottomNode);
         treeNodeFile.writeInt(node.pos);
         treeNodeFile.writeInt(node.dataCount);
@@ -260,7 +257,7 @@ public class BPlusTree<KeyType, ValueType>
      * 写入叶子节点到文件
      */
     private void writeLeaf(Leaf leaf) throws IOException {
-        leafFile.seek(headerLengthOfLeafFile + leaf.pos * getLeafSize());
+        leafFile.seek(headerLengthOfLeafFile + (long) leaf.pos * getLeafSize());
         leafFile.writeInt(leaf.nxt);
         leafFile.writeInt(leaf.pos);
         leafFile.writeInt(leaf.dataCount);
