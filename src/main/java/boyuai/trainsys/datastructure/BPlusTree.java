@@ -99,13 +99,26 @@ public class BPlusTree<KeyType, ValueType>
             // 打开文件
             this.treeNodeFile = new RandomAccessFile(treeNodeFileName, "rw");
             this.leafFile = new RandomAccessFile(leafFileName, "rw");
-            
-            if (treeNodeFile.length() == 0 || leafFile.length() == 0) {
-                // 文件不存在，初始化
+
+            long tlen = treeNodeFile.length();
+            long llen = leafFile.length();
+
+            boolean invalidHeader = (tlen < headerLengthOfTreeNodeFile) || (llen < headerLengthOfLeafFile);
+
+            if (tlen == 0 || llen == 0 || invalidHeader) {
+                // 文件不存在或头部不完整，重新初始化
+                treeNodeFile.setLength(0);
+                leafFile.setLength(0);
                 initialize();
             } else {
-                // 从文件读取信息
-                loadFromFile();
+                // 尝试从文件读取信息，若失败则回退到初始化
+                try {
+                    loadFromFile();
+                } catch (Exception ex) {
+                    treeNodeFile.setLength(0);
+                    leafFile.setLength(0);
+                    initialize();
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize B+ tree", e);
@@ -595,9 +608,15 @@ public class BPlusTree<KeyType, ValueType>
      * 在树节点中二分查找Pair
      */
     private int binarySearchTreeNodeValue(Pair<KeyType, ValueType> pair, TreeNode node) {
-        int left = -1, right = node.dataCount - 2, ans = node.dataCount - 1;
+        // 当 dataCount <= 1（仅一个子指针）时，直接返回最后一个子指针位置
+        if (node.dataCount <= 1) {
+            return Math.max(0, node.dataCount - 1);
+        }
+        int left = 0;
+        int right = node.dataCount - 2; // septal 的合法下标范围 [0, dataCount-2]
+        int ans = node.dataCount - 1;   // 默认落到最后一个子指针
         while (left <= right) {
-            int mid = (left + right) / 2;
+            int mid = (left + right) >>> 1;
             if (node.septal[mid] != null && checkPairLess(node.septal[mid], pair)) {
                 left = mid + 1;
             } else {

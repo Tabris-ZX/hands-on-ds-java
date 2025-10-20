@@ -1,8 +1,7 @@
 package boyuai.trainsys;
 
 import boyuai.trainsys.core.TrainSystem;
-import boyuai.trainsys.util.Types.*;
-import boyuai.trainsys.util.Date;
+import boyuai.trainsys.util.CommandParser;
 import java.util.Scanner;
 
 /**
@@ -11,8 +10,9 @@ import java.util.Scanner;
 public class Main {
 
     public static void main(String[] args) {
-        // 初始化系统
-        TrainSystem.init();
+        // 初始化系统（实例化）
+        TrainSystem system = new TrainSystem();
+        CommandParser parser = new CommandParser(system);
 
         Scanner scanner = new Scanner(System.in);
         String command;
@@ -27,181 +27,14 @@ public class Main {
 
             System.out.println("执行命令: " + command);
 
-            if (parseCommand(command) == 1) { // 读入到exit指令
+            if (parser.parseCommand(command) == 1) { // 读入到exit指令
                 break;
             }
         }
 
         // 关闭系统
-        TrainSystem.shutdown();
         scanner.close();
         System.out.println("系统已关闭");
-    }
-
-    /**
-     * 解析并执行命令
-     * @param command 命令字符串
-     * @return 如果是退出命令返回1，否则返回0
-     */
-    private static int parseCommand(String command) {
-        if (command.isEmpty()) {
-            return 0;
-        }
-
-        String[] parts = command.split("\\s+");
-        String cmd = parts[0].toLowerCase();
-
-        try {
-            switch (cmd) {
-                case "exit":
-                    return 1;
-
-                case "help":
-                    printHelp();
-                    break;
-
-                case "login":
-                    if (parts.length >= 3) {
-                        long userID = Long.parseLong(parts[1]);
-                        String password = parts[2];
-                        TrainSystem.login(new UserID(userID), password);
-                    } else {
-                        System.out.println("用法: login <用户ID> <密码>");
-                    }
-                    break;
-
-                case "logout":
-                    TrainSystem.logout();
-                    break;
-
-                case "adduser":
-                    if (parts.length >= 4) {
-                        long userID = Long.parseLong(parts[1]);
-                        String username = parts[2];
-                        String password = parts[3];
-                        TrainSystem.addUser(new UserID(userID), username, password);
-                    } else {
-                        System.out.println("用法: adduser <用户ID> <用户名> <密码>");
-                    }
-                    break;
-
-                case "finduser":
-                    if (parts.length >= 2) {
-                        long userID = Long.parseLong(parts[1]);
-                        TrainSystem.findUserInfoByUserID(new UserID(userID));
-                    } else {
-                        System.out.println("用法: finduser <用户ID>");
-                    }
-                    break;
-
-                case "modifypassword":
-                    if (parts.length >= 3) {
-                        long userID = Long.parseLong(parts[1]);
-                        String newPassword = parts[2];
-                        TrainSystem.modifyUserPassword(new UserID(userID), newPassword);
-                    } else {
-                        System.out.println("用法: modifypassword <用户ID> <新密码>");
-                    }
-                    break;
-
-                case "modifyprivilege":
-                    if (parts.length >= 3) {
-                        long userID = Long.parseLong(parts[1]);
-                        int newPrivilege = Integer.parseInt(parts[2]);
-                        TrainSystem.modifyUserPrivilege(new UserID(userID), newPrivilege);
-                    } else {
-                        System.out.println("用法: modifyprivilege <用户ID> <新权限>");
-                    }
-                    break;
-
-                case "querytrain":
-                    if (parts.length >= 2) {
-                        String trainID = parts[1];
-                        TrainSystem.queryTrainScheduler(new TrainID(trainID));
-                    } else {
-                        System.out.println("用法: querytrain <车次号>");
-                    }
-                    break;
-
-                case "queryticket":
-                    if (parts.length >= 4) {
-                        String trainID = parts[1];
-                        String dateStr = parts[2];
-                        int stationID = Integer.parseInt(parts[3]);
-                        TrainSystem.queryRemainingTicket(new TrainID(trainID),
-                                new Date(dateStr),
-                                new StationID(stationID));
-                    } else {
-                        System.out.println("用法: queryticket <车次号> <日期> <出发站ID>");
-                    }
-                    break;
-
-                case "mytickets":
-                    TrainSystem.queryMyTicket();
-                    break;
-
-                case "order":
-                    if (parts.length >= 4) {
-                        String trainID = parts[1];
-                        String dateStr = parts[2];
-                        int stationID = Integer.parseInt(parts[3]);
-                        TrainSystem.orderTicket(new TrainID(trainID),
-                                new Date(dateStr),
-                                new StationID(stationID));
-                    } else {
-                        System.out.println("用法: order <车次号> <日期> <出发站ID>");
-                    }
-                    break;
-
-                case "refund":
-                    if (parts.length >= 4) {
-                        String trainID = parts[1];
-                        String dateStr = parts[2];
-                        int stationID = Integer.parseInt(parts[3]);
-                        TrainSystem.refundTicket(new TrainID(trainID),
-                                new Date(dateStr),
-                                new StationID(stationID));
-                    } else {
-                        System.out.println("用法: refund <车次号> <日期> <出发站ID>");
-                    }
-                    break;
-
-                case "findroute":
-                    if (parts.length >= 3) {
-                        int departureID = Integer.parseInt(parts[1]);
-                        int arrivalID = Integer.parseInt(parts[2]);
-                        TrainSystem.findAllRoute(new StationID(departureID),
-                                new StationID(arrivalID));
-                    } else {
-                        System.out.println("用法: findroute <出发站ID> <到达站ID>");
-                    }
-                    break;
-
-                case "bestroute":
-                    if (parts.length >= 4) {
-                        int departureID = Integer.parseInt(parts[1]);
-                        int arrivalID = Integer.parseInt(parts[2]);
-                        int preference = Integer.parseInt(parts[3]);
-                        TrainSystem.findBestRoute(new StationID(departureID),
-                                new StationID(arrivalID),
-                                preference);
-                    } else {
-                        System.out.println("用法: bestroute <出发站ID> <到达站ID> <偏好>");
-                    }
-                    break;
-
-                default:
-                    System.out.println("未知命令: " + cmd);
-                    System.out.println("输入 'help' 查看可用命令");
-                    break;
-            }
-        } catch (NumberFormatException e) {
-            System.out.println("参数格式错误: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("命令执行出错: " + e.getMessage());
-        }
-
-        return 0;
     }
 
     /**

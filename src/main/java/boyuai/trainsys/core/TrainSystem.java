@@ -1,250 +1,285 @@
 package boyuai.trainsys.core;
 
 import boyuai.trainsys.config.Config;
+import boyuai.trainsys.info.PurchaseInfo;
+import boyuai.trainsys.info.TripInfo;
 import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.manager.SchedulerManager;
 import boyuai.trainsys.manager.StationManager;
+import boyuai.trainsys.manager.TicketManager;
+import boyuai.trainsys.manager.TripManager;
 import boyuai.trainsys.manager.UserManager;
 import boyuai.trainsys.util.Date;
+import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.PrioritizedWaitingList;
 import boyuai.trainsys.util.Types.StationID;
 import boyuai.trainsys.util.Types.TrainID;
 import boyuai.trainsys.util.Types.UserID;
 import lombok.Getter;
-import lombok.Setter;
 
 /**
- * 火车票务系统主类
+ * 火车票务系统主类（Java实现，保持与C++版本一致的行为）
  */
-@Setter
 @Getter
 public class TrainSystem {
 
-    // 系统组件
-    private static UserInfo currentUser;
-    private static UserManager userManager;
-    private static StationManager stationManager;
-    private static PrioritizedWaitingList waitingList;
-    // 其他管理器可以根据需要添加
+    private UserInfo currentUser;
+    private final UserManager userManager;
+    private final RailwayGraph railwayGraph;
+    private final SchedulerManager schedulerManager;
+    private final TicketManager ticketManager;
+    private final PrioritizedWaitingList waitingList;
+    private final TripManager tripManager;
+    private final StationManager stationManager;
 
-    /**
-     * 初始化系统
-     */
-    public static void init() {
-        stationManager = new StationManager("station.txt");
-        userManager = new UserManager("user.dat");
-        waitingList = new PrioritizedWaitingList();
+    public TrainSystem() {
+        this.stationManager = new StationManager("data/station.txt");
+        this.userManager = new UserManager("data/users");
+        this.railwayGraph = new RailwayGraph();
+        this.schedulerManager = new SchedulerManager("data/schedulers");
+        this.ticketManager = new TicketManager("data/tickets");
+        this.waitingList = new PrioritizedWaitingList();
+        this.tripManager = new TripManager("data/trips");
 
-        // 开启系统时，自动登录管理员。默认管理员账号ID为0
-        System.out.println("admin login");
-        UserID adminID = new UserID(0);
+        // 默认管理员账号ID为0
+        UserID adminID = new UserID(0L);
         if (userManager.existUser(adminID)) {
             currentUser = userManager.findUser(adminID);
         } else {
-            currentUser = new UserInfo(adminID, "admin", "admin", 100);
-            userManager.insertUser(adminID, "admin", "admin", 100);
+            currentUser = new UserInfo(adminID, "admin", "admin", Config.ADMIN_PRIVILEGE);
+            userManager.insertUser(adminID, "admin", "admin", Config.ADMIN_PRIVILEGE);
         }
     }
 
-    /**
-     * 关闭系统
-     */
-    public static void shutdown() {
-        if (userManager != null) {
-            userManager.close();
-        }
-        // 关闭其他管理器
-    }
-
-    // ===== Part 1: 运行计划管理子系统（需要系统管理员权限）=====
-
-    /**
-     * 添加列车时刻表
-     */
-    public static void addTrainScheduler(TrainID trainID, int seatNum, int passingStationNumber,
-                                         StationID[] stations, int[] duration, int[] price) {
-        // 检查权限
-        if (currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
-            System.out.println("权限不足");
+    // ===== Part 1: 运行计划管理（管理员） =====
+    public void addTrainScheduler(FixedString trainID, int seatNum, int passingStationNumber,
+                                  int[] stations, int[] duration, int[] price) {
+        if (currentUser == null || currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
+            System.out.println("Permission denied.");
             return;
         }
-
-        // TODO: 实现添加列车时刻表的逻辑
-        System.out.println("添加列车时刻表: " + trainID);
-    }
-
-    /**
-     * 查询列车时刻表
-     */
-    public static void queryTrainScheduler(TrainID trainID) {
-        // TODO: 实现查询列车时刻表的逻辑
-        System.out.println("查询列车时刻表: " + trainID);
-    }
-
-    // ===== Part 2: 票务管理子系统（需要系统管理员权限）=====
-
-    /**
-     * 发布车票
-     */
-    public static void releaseTicket(TrainScheduler scheduler, Date date) {
-        // 检查权限
-        if (currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
-            System.out.println("权限不足");
+        if (schedulerManager.existScheduler(trainID)) {
+            System.out.println("TrainID existed.");
             return;
         }
-
-        // TODO: 实现发布车票的逻辑
-        System.out.println("发布车票: " + scheduler.getTrainID() + " 日期: " + date);
+        schedulerManager.addScheduler(trainID, seatNum, passingStationNumber, stations, duration, price);
+        for (int i = 0; i + 1 < passingStationNumber; i++) {
+            railwayGraph.addRoute(stations[i], stations[i + 1], duration[i], price[i], new TrainID(trainID.toString()));
+        }
+        System.out.println("Train added.");
     }
 
-    /**
-     * 使车票过期
-     */
-    public static void expireTicket(TrainID trainID, Date date) {
-        // 检查权限
-        if (currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
-            System.out.println("权限不足");
+    public void queryTrainScheduler(FixedString trainID) {
+        if (currentUser == null || currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
+            System.out.println("Permission denied.");
             return;
         }
-
-        // TODO: 实现使车票过期的逻辑
-        System.out.println("使车票过期: " + trainID + " 日期: " + date);
+        TrainScheduler relatedInfo = schedulerManager.getScheduler(trainID);
+        if (relatedInfo == null) {
+            System.out.println("Train not found.");
+            return;
+        }
+        System.out.println(relatedInfo);
     }
 
-    // ===== Part 3: 车票交易子系统 =====
-
-    /**
-     * 查询余票
-     */
-    public static int queryRemainingTicket(TrainID trainID, Date date, StationID departureStation) {
-        // TODO: 实现查询余票的逻辑
-        System.out.println("查询余票: " + trainID);
-        return 0;
-    }
-
-    /**
-     * 查询我的车票
-     */
-    public static void queryMyTicket() {
-        // TODO: 实现查询我的车票的逻辑
-        System.out.println("查询用户 " + currentUser.getUserID() + " 的车票");
-    }
-
-    /**
-     * 订票
-     */
-    public static void orderTicket(TrainID trainID, Date date, StationID departureStation) {
-        // TODO: 实现订票的逻辑
-        System.out.println("订票: " + trainID + " 日期: " + date);
-    }
-
-    /**
-     * 退票
-     */
-    public static void refundTicket(TrainID trainID, Date date, StationID departureStation) {
-        // TODO: 实现退票的逻辑
-        System.out.println("退票: " + trainID + " 日期: " + date);
-    }
-
-    // ===== Part 4: 路线查询子系统 =====
-
-    /**
-     * 查找所有路线
-     */
-    public static void findAllRoute(StationID departureID, StationID arrivalID) {
-        // TODO: 实现查找所有路线的逻辑
-        System.out.println("查找从 " + departureID + " 到 " + arrivalID + " 的所有路线");
-    }
-
-    /**
-     * 查找最佳路线
-     */
-    public static void findBestRoute(StationID departureID, StationID arrivalID, int preference) {
-        // TODO: 实现查找最佳路线的逻辑
-        System.out.println("查找从 " + departureID + " 到 " + arrivalID + " 的最佳路线");
-    }
-
-    // ===== Part 5: 用户管理子系统 =====
-
-    /**
-     * 登录
-     */
-    public static void login(UserID userID, String password) {
-        UserInfo user = userManager.findUser(userID);
-        if (user != null && user.getPassword().equals(password)) {
-            currentUser = user;
-            System.out.println("登录成功: " + user.getUsername());
+    // ===== Part 2: 票务管理（管理员） =====
+    public void releaseTicket(TrainScheduler scheduler, Date date) {
+        if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
+            ticketManager.releaseTicket(scheduler, date);
+            System.out.println("Ticket released.");
         } else {
-            System.out.println("登录失败: 用户名或密码错误");
+            System.out.println("Permission denied.");
         }
     }
 
-    /**
-     * 登出
-     */
-    public static void logout() {
-        System.out.println("用户 " + currentUser.getUsername() + " 已登出");
-        // 恢复为管理员账户
-        currentUser = userManager.findUser(new UserID(0));
-    }
-
-    /**
-     * 添加用户
-     */
-    public static void addUser(UserID userID, String username, String password) {
-        // 检查权限
-        if (currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
-            System.out.println("权限不足");
-            return;
-        }
-
-        if (userManager.existUser(userID)) {
-            System.out.println("用户已存在");
-            return;
-        }
-
-        userManager.insertUser(userID, username, password, 1); // 默认普通用户权限为1
-        System.out.println("添加用户成功: " + username);
-    }
-
-    /**
-     * 根据用户ID查找用户信息
-     */
-    public static void findUserInfoByUserID(UserID userID) {
-        UserInfo user = userManager.findUser(userID);
-        if (user != null) {
-            System.out.println("用户信息: ID=" + userID + ", 用户名=" + user.getUsername() +
-                    ", 权限=" + user.getPrivilege());
+    public void expireTicket(FixedString trainID, Date date) {
+        if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
+            ticketManager.expireTicket(trainID, date);
+            System.out.println("Ticket expired.");
         } else {
-            System.out.println("用户不存在");
+            System.out.println("Permission denied.");
         }
     }
 
-    /**
-     * 修改用户密码
-     */
-    public static void modifyUserPassword(UserID userID, String password) {
-        // 检查权限（管理员或用户本人）
-        if (currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE &&
-                !currentUser.getUserID().equals(userID)) {
-            System.out.println("权限不足");
-            return;
-        }
-
-        userManager.modifyUserPassword(userID, password);
-        System.out.println("修改密码成功");
+    // ===== Part 3: 交易 =====
+    public int queryRemainingTicket(FixedString trainID, Date date, StationID departureStation) {
+        return ticketManager.querySeat(trainID, date, departureStation.value());
     }
 
-    /**
-     * 修改用户权限
-     */
-    public static void modifyUserPrivilege(UserID userID, int newPrivilege) {
-        // 检查权限
-            if (currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
-            System.out.println("权限不足");
+    private boolean trySatisfyOrder() {
+        if (waitingList.isEmpty()) return false;
+        var purchaseInfo = waitingList.getFrontPurchaseInfo();
+        waitingList.removeHeadFromWaitingList();
+
+        System.out.println("Processing request from User " + purchaseInfo.getUserID().value());
+
+        if (purchaseInfo.isOrdering()) {
+            int remainingTickets = queryRemainingTicket(new TrainID(purchaseInfo.getTrainID().toString()),
+                    purchaseInfo.getDate(), purchaseInfo.getDepartureStation());
+            if (remainingTickets < purchaseInfo.getType()) {
+                System.out.println("No enough tickets or scheduler not exists. Order failed.");
+                return false;
+            } else {
+                ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
+                        purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
+
+                TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
+                int id = schedule.findStation(purchaseInfo.getDepartureStation());
+                int duration = schedule.getDuration(id);
+                int price = schedule.getPrice(id);
+                StationID arrivalStation = schedule.getStation(id + 1);
+
+                tripManager.addTrip(currentUser.getUserID().value(), new TripInfo(
+                        purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
+                        purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
+                ));
+
+                System.out.println("Order succeeded.");
+                return true;
+            }
+        } else {
+            ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
+                    purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
+
+            TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
+            int id = schedule.findStation(purchaseInfo.getDepartureStation());
+            int duration = schedule.getDuration(id);
+            int price = schedule.getPrice(id);
+            StationID arrivalStation = schedule.getStation(id + 1);
+
+            tripManager.removeTrip(currentUser.getUserID().value(), new TripInfo(
+                    purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
+                    -purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
+            ));
+            System.out.println("Refund succeeded.");
+            return true;
+        }
+    }
+
+    public void queryMyTicket() {
+        while (waitingList.isBusy()) trySatisfyOrder();
+        var tripInfo = tripManager.queryTrip(currentUser.getUserID().value());
+        for (int i = 0; i < tripInfo.length(); i++) {
+            System.out.println(tripInfo.visit(i));
+        }
+    }
+
+    public void orderTicket(FixedString trainID, Date date, StationID departureStation) {
+        while (waitingList.isBusy()) trySatisfyOrder();
+        waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), date, departureStation, +1));
+        System.out.println("Ordering request has added to waiting list.");
+    }
+
+    public void refundTicket(FixedString trainID, Date date, StationID departureStation) {
+        while (waitingList.isBusy()) trySatisfyOrder();
+        waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), date, departureStation, -1));
+        System.out.println("Refunding request has added to waiting list.");
+    }
+
+    // ===== Part 4: 路线查询 =====
+    public void findAllRoute(StationID departureID, StationID arrivalID) {
+        if (!railwayGraph.checkStationAccessibility(departureID.value(), arrivalID.value())) {
+            System.out.println("Disconnected. No route found.");
             return;
         }
+        railwayGraph.displayRoute(departureID.value(), arrivalID.value());
+    }
 
-        userManager.modifyUserPrivilege(userID, newPrivilege);
-        System.out.println("修改权限成功");
+    public void findBestRoute(StationID departureID, StationID arrivalID, int preference) {
+        if (!railwayGraph.checkStationAccessibility(departureID.value(), arrivalID.value())) {
+            System.out.println("Disconnected. No route found.");
+            return;
+        }
+        railwayGraph.shortestPath(departureID.value(), arrivalID.value(), preference);
+    }
+
+    // ===== Part 5: 用户管理 =====
+    public void login(long userID, String password) {
+        if (currentUser != null && currentUser.getUserID().value() != -1) {
+            System.out.println("Only one user can login in at the same time.");
+            return;
+        }
+        UserID uid = new UserID(userID);
+        if (!userManager.existUser(uid)) {
+            System.out.println("User not found. Login failed.");
+            return;
+        }
+        UserInfo userInfo = userManager.findUser(uid);
+        if (!userInfo.getPassword().equals(password)) {
+            System.out.println("Wrong password. Login failed.");
+            return;
+        }
+        currentUser = userInfo;
+        System.out.println("Login succeeded.");
+    }
+
+    public void logout() {
+        if (currentUser == null || currentUser.getUserID().value() == -1) {
+            System.out.println("No user logined.");
+            return;
+        }
+        currentUser.getUserID().value();
+        currentUser = new UserInfo(new UserID(-1L), "", "", 0);
+    }
+
+    public void addUser(long userID, String username, String password) {
+        UserID uid = new UserID(userID);
+        if (userManager.existUser(uid)) {
+            System.out.println("User ID existed.");
+            return;
+        }
+        if (currentUser == null || currentUser.getUserID().value() == -1) {
+            System.out.println("Permission denied.");
+            return;
+        }
+        userManager.insertUser(uid, username, password, 0);
+        System.out.println("User added.");
+    }
+
+    public void findUserInfoByUserID(long userID) {
+        UserID uid = new UserID(userID);
+        if (!userManager.existUser(uid)) {
+            System.out.println("User not found.");
+            return;
+        }
+        UserInfo userInfo = userManager.findUser(uid);
+        if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
+            System.out.println("Permission denied.");
+            return;
+        }
+        System.out.println("UserID: " + userInfo.getUserID().value());
+        System.out.println("UserName: " + userInfo.getUsername());
+        System.out.println("Password: " + userInfo.getPassword());
+        System.out.println("Privilege: " + userInfo.getPrivilege());
+    }
+
+    public void modifyUserPassword(long userID, String newPassword) {
+        UserID uid = new UserID(userID);
+        if (!userManager.existUser(uid)) {
+            System.out.println("User not found.");
+            return;
+        }
+        UserInfo userInfo = userManager.findUser(uid);
+        if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
+            System.out.println("Modification forbidden.");
+            return;
+        }
+        userManager.modifyUserPassword(uid, newPassword);
+        System.out.println("Modification succeeded.");
+    }
+
+    public void modifyUserPrivilege(long userID, int newPrivilege) {
+        UserID uid = new UserID(userID);
+        if (!userManager.existUser(uid)) {
+            System.out.println("User not found.");
+            return;
+        }
+        UserInfo userInfo = userManager.findUser(uid);
+        if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
+            System.out.println("Modification forbidden.");
+            return;
+        }
+        userManager.modifyUserPrivilege(uid, newPrivilege);
+        System.out.println("Modifiaction succeeded.");
     }
 }

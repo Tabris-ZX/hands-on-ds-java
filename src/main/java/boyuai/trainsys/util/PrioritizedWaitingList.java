@@ -46,6 +46,11 @@ public class PrioritizedWaitingList {
         listSize++;
     }
 
+    // 与C++接口兼容的重载：默认优先级为0（FIFO行为可由优先队列稳定性近似）
+    public void addToWaitingList(PurchaseInfo purchaseInfo) {
+        addToWaitingList(purchaseInfo, 0);
+    }
+
     /**
      * 从等待列表头部移除
      */
