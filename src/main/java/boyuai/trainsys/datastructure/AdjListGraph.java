@@ -1,10 +1,15 @@
 package boyuai.trainsys.datastructure;
 
-import java.util.ArrayList;
+import lombok.Data;
 
+import java.util.ArrayList;
+/**
+ * 邻接表图的实现
+ * @param <T> 权重类型
+ */
 public class AdjListGraph<T> implements Graph<T>{
     // 创建一个结点类
-    public class edgeNode<T> {
+    public static class edgeNode<T> {
         int end;
         T weight;
         edgeNode<T> next;
@@ -23,7 +28,7 @@ public class AdjListGraph<T> implements Graph<T>{
     ArrayList<edgeNode<T>> adjList;
     // 构造函数
     public AdjListGraph(int vers) {
-        this.adjList = new ArrayList<edgeNode<T>>(vers);
+        this.adjList = new ArrayList<>(vers);
         // 初始化所有顶点
         for (int i = 0; i < vers; i++) {
             adjList.add(null);
@@ -45,7 +50,7 @@ public class AdjListGraph<T> implements Graph<T>{
             throw new IllegalArgumentException("编号越界");
         }
         // 插入边
-        edgeNode<T> newNode = new edgeNode<> (y, w, adjList.get(x));
+        edgeNode<T> newNode = new edgeNode<>(y, w, adjList.get(x));
         adjList.set(x, newNode);
         edges++;
     }

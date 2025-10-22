@@ -14,8 +14,8 @@ public class BPlusTree<KeyType, ValueType>
     private static final int DEFAULT_M = 100;
     private static final int DEFAULT_L = 100;
     
-    private RandomAccessFile treeNodeFile;
-    private RandomAccessFile leafFile;
+    private final RandomAccessFile treeNodeFile;
+    private final RandomAccessFile leafFile;
     private int rearTreeNode;           // 最后一个树节点的位置
     private int rearLeaf;               // 最后一个叶子节点的位置
     private int sizeData;               // 数据个数
@@ -62,10 +62,10 @@ public class BPlusTree<KeyType, ValueType>
         }
     }
     
-    private String treeNodeFileName;
-    private String leafFileName;
+    private final String treeNodeFileName;
+    private final String leafFileName;
     private TreeNode root;
-    private Comparator<KeyType> comparator;
+    private final Comparator<KeyType> comparator;
     private int m, l;  // 实际使用的M和L值
     
     /**
@@ -140,23 +140,14 @@ public class BPlusTree<KeyType, ValueType>
      * 比较两个Pair的大小
      */
     private boolean checkPairLess(Pair<KeyType, ValueType> lhs, Pair<KeyType, ValueType> rhs) {
-        int keyCmp = compare(lhs.getKey(), rhs.getKey());
-        if (keyCmp != 0) {
-            return keyCmp < 0;
-        } else {
-            // 键相等时比较值
-            if (lhs.getValue() instanceof Comparable && rhs.getValue() instanceof Comparable) {
-                return ((Comparable<ValueType>) lhs.getValue()).compareTo(rhs.getValue()) < 0;
-            }
-            return lhs.getValue().hashCode() < rhs.getValue().hashCode();
-        }
+        return Pair.checkPairLess(lhs, rhs);
     }
     
     /**
      * 比较两个Pair是否相等
      */
     private boolean checkPairEqual(Pair<KeyType, ValueType> lhs, Pair<KeyType, ValueType> rhs) {
-        return lhs.getKey().equals(rhs.getKey()) && lhs.getValue().equals(rhs.getValue());
+        return Pair.checkEqual(lhs, rhs);
     }
     
     /**

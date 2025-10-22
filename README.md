@@ -1,22 +1,64 @@
-# 动手学数据结构与算法 电子资料仓库
-### 仓库各目录中的内容
-- textcode 目录包含本书代码清单中的所有代码，按照章节进行排列，通常类名即为文件名，类名 + Test.cpp 即为该类的测试程序。例如，textcode/chapter2/seqList.h 及对应的 .cpp 文件包含代码清单 2-2 ~ 代码清单 2-5 顺序表的完整定义与实现。此外，本书介绍的数据结构简单应用也包含在内，例如，textcode/chapter2/multinomial.h 及 multinomialTest.cpp 是代码清单 2-14 所示的多项式类的实现与测试程序。
+# 动手学数据结构与算法(Java 实现版)
 
-- code 目录包含本书除第 1 章、第 7 章和第 11 章以外，每章的大型应用实现中各个应用模块的代码。由于涉及文件较多，将它们与 textcode 目录分开。通常，类名即为子目录名，例如，code/TrainScheduler 目录包含 2.5 节中列车运行计划管理类的完整实现与测试代码。
+## 每章节代码清单(textcode目录下)
+目前在做...
 
-- trainsys 目录包含整个大型应用——火车票管理系统的代码。
+## 火车票务管理系统(trainsys目录下)
+本项目为 C++ 版迁移，支持命令行操作火车票务相关功能。数据自动存储于 data/ 目录。
 
-  - DataStructure 子目录是大型应用中使用的数据结构实现。注意，作为一个完整应用，其实现可能和textcode目录与code 目录中的代码有所差异。例如，余票管理类和行程管理类均使用了一对多B+树进行存储而非8.4节介绍的一对一B+树，这些差异已在每章介绍大型应用实现时阐明，读者可以亲自动手运行代码，比对这些差异，体会从简单的数据结构到复杂的大型应用实现的变化。
-  - main.cpp 文件是火车票管理系统的主入口，与火车票管理系统的交互方式为命令行。
-  - CommandParser.h 和 CommandParser.cpp 文件是火车票管理系统的命令解析类，它负责解析用户输入的指令，调用对应管理类的系统功能。
-  - 其余 .h 文件和对应的 .cpp 文件是大型应用各个类的定义与具体实现。
-  - input.in 文件（位于根目录）是火车票管理系统测试样例输入。
-  - station.txt 文件（位于根目录）是火车票管理系统测试样例的站点列表。
-  - init_database.sh 文件（位于根目录）用于清除火车票管理系统在磁盘上保存的数据文件。
-- ``习题答案.docx`` 包含每章最后一节习题中客观题的答案和部分主观题的解题思路。
+### 构建与运行
+- 构建：`mvn compile`
+- 运行：`java -cp target/classes boyuai.trainsys.Main`
+- 输入 `help` 查看指令，`exit` 退出
 
+### 数据文件
+| 类型    | 路径                 |
+|-------|--------------------|
+| 站点库   | data/station.txt   |
+| 用户库   | data/users_*       |
+| 调度库   | data/schedulers_*  |
+| 车票库   | data/tickets_*     |
+| 行程库   | data/trips_*       |
 
-### 本地环境搭建和仓库代码运行
-火车票管理系统这一大型应用由许多文件构成，读者下载代码仓库后需要在本地搭建C++编译与测试环境后方可动手学习，具体环境搭建方法参见本书附录 B.3。
+### 指令总览
 
-本书的所有代码在 GNU/Linux 环境下测试编译通过，因此推荐读者采用 g++ 9.4 或更新版本的 GNU C++ 编译器，并选用 ``-lm、-Wall、-Wextra、-O1、-std=c++14`` 等编译参数。例如，读者可以在命令行中执行 ``g++ max1max2Test.cpp -o max1max2Test -lm -Wall -Wextra -O1 -std=c++14`` ，将代码清单1-1 函数 max1 与 max2 的实现及其测试程序的源文件max1max2Test.cpp 编译为可执行文件 max1max2Test。
+| 模块    | 指令名                   | 参数示例/说明                                                                                    |
+|-------|-----------------------|--------------------------------------------------------------------------------------------|
+| 用户管理  | `register`            | `-i <用户ID>` `-u <用户名>` `-p <密码>`                                                           |
+|       | `login`               | `-i <用户ID>` `-p <密码>`                                                                      |
+|       | `logout`              | 无参数                                                                                        |
+|       | `modify_password`     | `-i <用户ID>` `-p <新密码>`                                                                     |
+|       | `modify_privilege`    | `-i <用户ID>` `-g <权限值>`                                                                     |
+|       | `query_profile`       | `-i <用户ID>`                                                                                |
+| 运行计划  | `add_train`           | `-i <车次ID>` `-m <席位数>` `-n <站点数>` `-s <站名1/站名2/...>` `-t <时长1/时长2/...>` `-p <票价1/票价2/...>` |
+|       | `query_train`         | `-i <车次ID>`                                                                                |
+| 票务    | `release_ticket`      | `-i <车次ID>` `-d <日期>`                                                                      |
+|       | `expire_ticket`       | `-i <车次ID>` `-d <日期>`                                                                      |
+|       | `query_remaining`     | `-i <车次ID>` `-d <日期>` `-f <出发站名>`                                                          |
+|       | `buy_ticket`          | `-i <车次ID>` `-d <日期>` `-f <出发站名>`                                                          |
+|       | `query_order`         | 无参数                                                                                        |
+|       | `refund_ticket`       | `-i <车次ID>` `-d <日期>` `-f <出发站名>`                                                          |
+| 路线    | `display_route`       | `-s <起点站名>` `-t <终点站名>`                                                                    |
+|       | `query_best_path`     | `-s <起点站名>` `-t <终点站名>` `-p <time or price>`                                               |
+|       | `query_accessibility` | `-s <起点站名>` `-t <终点站名>`                                                                    |
+| 系统    | `help`                | 无参数                                                                                        |
+|       | `exit`                | 无参数                                                                                        |
+
+### 示例
+
+```
+login -i 0 -p admin
+add_train -i D2282 -m 1000 -n 4 -s 北京/天津/济南/青岛 -t 35/95/160 -p 29/97/118
+release_ticket -i D2282 -d 08-01
+query_remaining -i D2282 -d 08-01 -f 北京
+buy_ticket -i D2282 -d 08-01 -f 北京
+query_order
+query_best_path -s 北京 -t 青岛 -p time
+```
+
+### 差异文件(doc/difference.md)
+**C++ 与 Java 实现差异说明**
+
+### Plus版本(trainsys_plus)
+**优化后的火车票务系统,项目操作更加人性化,更贴合现实项目**<br>
+目前在做...

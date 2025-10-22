@@ -49,30 +49,36 @@ public class Main {
      * 打印帮助信息
      */
     private static void printHelp() {
-        System.out.println("可用命令:");
+        System.out.println("可用命令 (需使用短参 -x value 形式):");
         System.out.println("  用户管理:");
-        System.out.println("    login <用户ID> <密码>           - 登录");
-        System.out.println("    logout                          - 登出");
-        System.out.println("    adduser <用户ID> <用户名> <密码> - 添加用户（需要管理员权限）");
-        System.out.println("    finduser <用户ID>               - 查找用户信息");
-        System.out.println("    modifypassword <用户ID> <新密码> - 修改密码");
-        System.out.println("    modifyprivilege <用户ID> <权限>  - 修改权限（需要管理员权限）");
+        System.out.println("    register -i <用户ID> -u <用户名> -p <密码>   - 注册用户");
+        System.out.println("    login    -i <用户ID> -p <密码>             - 登录");
+        System.out.println("    logout                                        - 登出");
+        System.out.println("    modify_password   -i <用户ID> -p <新密码>     - 修改密码");
+        System.out.println("    modify_privilege  -i <用户ID> -g <权限>       - 修改权限");
+        System.out.println("    query_profile     -i <用户ID>                 - 查看用户资料");
         System.out.println();
-        System.out.println("  列车查询:");
-        System.out.println("    querytrain <车次号>              - 查询列车时刻表");
+        System.out.println("  运行计划(管理员):");
+        System.out.println("    add_train   -i <车次ID> -m <席位数> -n <站数> -s <站1/站2/...> -t <时长1/时长2/...> -p <票价1/票价2/...>   - 添加列车");
+        System.out.println("    query_train -i <车次ID>                       - 查询列车信息");
         System.out.println();
-        System.out.println("  车票操作:");
-        System.out.println("    queryticket <车次> <日期> <站ID> - 查询余票");
-        System.out.println("    mytickets                       - 查询我的车票");
-        System.out.println("    order <车次> <日期> <出发站ID>   - 订票");
-        System.out.println("    refund <车次> <日期> <出发站ID>  - 退票");
+        System.out.println("  票务(管理员):");
+        System.out.println("    release_ticket -i <车次ID> -d <日期>          - 发布车票");
+        System.out.println("    expire_ticket  -i <车次ID> -d <日期>          - 使车票过期");
         System.out.println();
-        System.out.println("  路线查询:");
-        System.out.println("    findroute <出发站ID> <到达站ID>  - 查找所有路线");
-        System.out.println("    bestroute <出发站> <到达站> <偏好> - 查找最佳路线");
+        System.out.println("  购/退票:");
+        System.out.println("    query_remaining -i <车次ID> -d <日期> -f <出发站名>   - 查询余票");
+        System.out.println("    buy_ticket      -i <车次ID> -d <日期> -f <出发站名>   - 购票");
+        System.out.println("    query_order                                      - 查询我的订单");
+        System.out.println("    refund_ticket   -i <车次ID> -d <日期> -f <出发站名>   - 退票");
+        System.out.println();
+        System.out.println("  路线:");
+        System.out.println("    display_route    -s <起点站名> -t <终点站名>           - 显示所有可达路线");
+        System.out.println("    query_best_path  -s <起点站名> -t <终点站名> -p <time or price>   - 查询最优路线");
+        System.out.println("    query_accessibility -s <起点站名> -t <终点站名>        - 查询站点是否连通");
         System.out.println();
         System.out.println("  系统:");
-        System.out.println("    help                            - 显示帮助");
-        System.out.println("    exit                            - 退出系统");
+        System.out.println("    help");
+        System.out.println("    exit");
     }
 }

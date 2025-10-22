@@ -1,5 +1,9 @@
 package boyuai.trainsys.datastructure;
 
+
+import lombok.Data;
+
+@Data
 public class SeqList<T> implements List<T>{
     T[] data;
     int currentLength;
@@ -93,11 +97,6 @@ public class SeqList<T> implements List<T>{
     // 获取末尾元素
     public T back() {
         return visit(currentLength - 1);
-    }
-
-    // 获取当前容量
-    public int getMaxSize() {
-        return maxSize;
     }
 
     // 转换为数组

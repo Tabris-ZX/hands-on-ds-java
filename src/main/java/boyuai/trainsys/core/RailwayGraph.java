@@ -6,15 +6,14 @@ import boyuai.trainsys.datastructure.DisjointSet;
 import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.config.Config;
 import boyuai.trainsys.util.Types.*;
+import lombok.Data;
+
 import java.util.*;
 
-/**
- * 铁路网络图
- * 用于管理站点间的路线信息和路径查询
- */
+@Data
 public class RailwayGraph {
 
-    // 使用邻接表图存储“存在性”，同时自维护可遍历的邻接结构
+    // 使用邻接表图存储"存在性"，同时自维护可遍历的邻接结构
     private AdjListGraph<RouteSectionInfo> routeGraph;
     private List<List<Edge>> adjacency; // 自维护的可遍历邻接表
 
@@ -41,24 +40,15 @@ public class RailwayGraph {
         Edge(int end, RouteSectionInfo info) { this.end = end; this.info = info; }
     }
 
-    /**
-     * 向运行图中添加一条路线
-     * @param departureStationID 出发站ID
-     * @param arrivalStationID 到达站ID
-     * @param duration 运行时间
-     * @param price 票价
-     * @param trainID 列车ID
-     */
+    // 向运行图中加入一条边
     public void addRoute(int departureStationID, int arrivalStationID,
                          int duration, int price, TrainID trainID) {
         // 新建一条 SectionInfo 并将其放入内存池
         RouteSectionInfo section = new RouteSectionInfo(trainID, new StationID(arrivalStationID), price, duration);
-        routeSectionPool.insert(routeSectionPool.length(), section);
-
+        routeSectionPool.insert(routeSectionPool.length(), section); // 内存池
         // 向图中插入一条边
         routeGraph.insert(departureStationID, arrivalStationID, section);
         adjacency.get(departureStationID).add(new Edge(arrivalStationID, section));
-
         // 用不相交集将节点标记为连通
         int x = stationSet.find(departureStationID);
         int y = stationSet.find(arrivalStationID);
@@ -205,21 +195,5 @@ public class RailwayGraph {
         } else {
             System.out.println("Total price: " + distance[arrivalStationID]);
         }
-    }
-
-    /**
-     * 获取路线图（用于其他模块访问）
-     * @return 路线图
-     */
-    public AdjListGraph<RouteSectionInfo> getRouteGraph() {
-        return routeGraph;
-    }
-
-    /**
-     * 获取站点集合（用于其他模块访问）
-     * @return 站点并查集
-     */
-    public DisjointSet getStationSet() {
-        return stationSet;
     }
 }

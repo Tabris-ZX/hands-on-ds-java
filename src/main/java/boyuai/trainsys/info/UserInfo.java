@@ -89,4 +89,14 @@ public class UserInfo implements Comparable<UserInfo> {
     public int compareTo(UserInfo other) {
         return Long.compare(this.userID.value(), other.userID.value());
     }
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "userID=" + userID +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", privilege=" + privilege +
+                '}';
+    }
 }
