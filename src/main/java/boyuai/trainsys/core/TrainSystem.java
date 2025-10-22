@@ -15,12 +15,17 @@ import boyuai.trainsys.util.PrioritizedWaitingList;
 import boyuai.trainsys.util.Types.StationID;
 import boyuai.trainsys.util.Types.TrainID;
 import boyuai.trainsys.util.Types.UserID;
+import lombok.Data;
 import lombok.Getter;
 
-/**
- * 火车票务系统主类（Java实现，保持与C++版本一致的行为）
+/*
+ * part1 运行计划管理子系统（需要系统管理员权限）
+ * part2 票务管理子系统（需要系统管理员权限）
+ * part3 车票交易子系统
+ * part4 路线查询子系统
+ * part5 用户管理子系统
  */
-@Getter
+@Data
 public class TrainSystem {
 
     private UserInfo currentUser;
@@ -218,8 +223,8 @@ public class TrainSystem {
             System.out.println("No user logined.");
             return;
         }
-        currentUser.getUserID().value();
         currentUser = new UserInfo(new UserID(-1L), "", "", 0);
+        System.out.println("Logout succeeded.");
     }
 
     public void addUser(long userID, String username, String password) {
@@ -282,4 +287,5 @@ public class TrainSystem {
         userManager.modifyUserPrivilege(uid, newPrivilege);
         System.out.println("Modifiaction succeeded.");
     }
+
 }

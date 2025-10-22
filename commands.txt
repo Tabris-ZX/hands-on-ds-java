@@ -1,0 +1,7 @@
+help 
+register -i 1 -u zx -p 123 
+query_profile -i 
+query_profile -i  
+logout 
+login -i 1 -p 123 
+exit

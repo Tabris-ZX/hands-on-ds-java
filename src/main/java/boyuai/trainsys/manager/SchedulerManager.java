@@ -89,41 +89,4 @@ public class SchedulerManager {
         }
     }
 
-    /**
-     * 获取所有列车调度计划
-     * @return 所有列车调度计划的列表
-     */
-    public SeqList<TrainScheduler> getAllSchedulers() {
-        SeqList<TrainScheduler> allSchedulers = new SeqList<>();
-        // 这里需要遍历B+树获取所有调度计划
-        // 具体实现依赖于BPlusTree的遍历接口
-        return allSchedulers;
-    }
-
-    /**
-     * 更新运行计划
-     * @param trainID 列车ID
-     * @param scheduler 新的运行计划
-     */
-    public void updateScheduler(FixedString trainID, TrainScheduler scheduler) {
-        // 先删除旧的，再添加新的
-        removeScheduler(trainID);
-        schedulerInfo.insert(trainID, scheduler);
-    }
-
-    /**
-     * 保存数据到文件
-     */
-    public void save() {
-        // B+树应该自动持久化到文件
-        // 这里可以调用B+树的保存方法（如果有的话）
-    }
-
-    /**
-     * 从文件加载数据
-     */
-    public void load() {
-        // B+树应该在构造时自动从文件加载
-        // 这里可以调用B+树的加载方法（如果有的话）
-    }
 }

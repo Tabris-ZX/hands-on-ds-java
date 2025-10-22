@@ -67,4 +67,10 @@ interface StorageSearchTable<KeyType, ValueType> {
      * @param val 值
      */
     void remove(KeyType key, ValueType val);
+    
+    /**
+     * 获取表中元素的数量
+     * @return 元素数量
+     */
+    int size();
 }

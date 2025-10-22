@@ -69,11 +69,4 @@ public class StationManager {
         return new StationID(id != null ? id : -1);
     }
 
-    /**
-     * 获取所有站点数量
-     * @return 站点数量
-     */
-    public int getStationCount() {
-        return idToName.size();
-    }
 }

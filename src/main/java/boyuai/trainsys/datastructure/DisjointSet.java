@@ -1,10 +1,15 @@
 package boyuai.trainsys.datastructure;
 
+import lombok.Data;
+import lombok.Getter;
+
 /**
  * 并查集（Disjoint Set Union）
  * 支持路径压缩和按秩合并优化
  */
+@Getter
 public class DisjointSet {
+
     private int size;
     private int[] parent;
     
@@ -51,12 +56,5 @@ public class DisjointSet {
         // 路径压缩：将x直接连接到根节点
         return parent[x] = find(parent[x]);
     }
-    
-    /**
-     * 获取集合大小
-     * @return 元素总数
-     */
-    public int getSize() {
-        return size;
-    }
+
 }

@@ -84,6 +84,34 @@ public class TicketInfo implements Comparable<TicketInfo> {
         return Integer.compare(this.duration, other.duration);
     }
 
+    public void setTrainID(TrainID trainID) {
+        this.trainID = trainID;
+    }
+
+    public void setDepartureStation(StationID departureStation) {
+        this.departureStation = departureStation;
+    }
+
+    public void setArrivalStation(StationID arrivalStation) {
+        this.arrivalStation = arrivalStation;
+    }
+
+    public void setSeatNum(int seatNum) {
+        this.seatNum = seatNum;
+    }
+
+    public void setPrice(int price) {
+        this.price = price;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
     @Override
     public String toString() {
         return "TrainID: " + trainID + "\n" +

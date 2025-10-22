@@ -4,8 +4,6 @@ import boyuai.trainsys.core.RailwayGraph;
 import boyuai.trainsys.core.TrainSystem;
 import boyuai.trainsys.info.*;
 import boyuai.trainsys.manager.*;
-import boyuai.trainsys.util.Date;
-import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.Types.*;
 import boyuai.trainsys.datastructure.SeqList;
 import java.util.HashMap;
@@ -20,34 +18,18 @@ public class CommandParser {
     // 存放参数，例如 argMap.get('u') 存放的是 -u 后面的参数
     private static final Map<Character, String> argMap = new HashMap<>();
 
-    // 外部依赖引用
-    private UserInfo currentUser;
-    private UserManager userManager;
-    private RailwayGraph railwayGraph;
-    private SchedulerManager schedulerManager;
-    private TicketManager ticketManager;
-    private PrioritizedWaitingList waitingList;
-    private TripManager tripManager;
-    private StationManager stationManager;
-    private TrainSystem trainSystem;
+    // 外部依赖引用（仅保留实际使用的字段）
+    private final RailwayGraph railwayGraph;
+    private final SchedulerManager schedulerManager;
+    private final StationManager stationManager;
+    private final TrainSystem trainSystem;
 
     public CommandParser(TrainSystem trainSystem) {
         this.trainSystem = trainSystem;
-        this.currentUser = trainSystem.getCurrentUser();
-        this.userManager = trainSystem.getUserManager();
         this.railwayGraph = trainSystem.getRailwayGraph();
         this.schedulerManager = trainSystem.getSchedulerManager();
-        this.ticketManager = trainSystem.getTicketManager();
-        this.waitingList = trainSystem.getWaitingList();
-        this.tripManager = trainSystem.getTripManager();
         this.stationManager = trainSystem.getStationManager();
     }
-
-    /**
-     * 判断字符是否为字符串结束符
-     */
-    // 保留以兼容C++接口（当前未使用）
-    private boolean isStringEnding(char ch) { return ch == '\0' || ch == '\n' || ch == '\r'; }
 
     /**
      * 将字符串按照分隔符分割
@@ -244,9 +226,9 @@ public class CommandParser {
      * 解析添加列车命令
      */
     private void parseAddTrain() {
-        SeqList<String> stationsString = splitTokens(argMap.get('s'), '|');
-        SeqList<String> pricesString = splitTokens(argMap.get('p'), '|');
-        SeqList<String> durationsString = splitTokens(argMap.get('t'), '|');
+        SeqList<String> stationsString = splitTokens(argMap.get('s'), '/');
+        SeqList<String> pricesString = splitTokens(argMap.get('p'), '/');
+        SeqList<String> durationsString = splitTokens(argMap.get('t'), '/');
 
         int[] stations = new int[stationsString.length()];
         int[] prices = new int[pricesString.length()];
