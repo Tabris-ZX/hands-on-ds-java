@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>火车票务管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-train"></i> 火车票务管理系统</h1>
+                <div class="user-info" id="userInfo">
+                    <span id="currentUser">未登录</span>
+                    <button id="loginBtn" class="btn btn-primary">登录</button>
+                    <button id="logoutBtn" class="btn btn-secondary" style="display: none;">登出</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 侧边栏导航 -->
+            <nav class="sidebar">
+                <div class="nav-section">
+                    <h3><i class="fas fa-user"></i> 用户管理</h3>
+                    <ul class="nav-list">
+                        <li><a href="#" data-section="login" class="nav-link"><i class="fas fa-sign-in-alt"></i> 登录</a></li>
+                        <li><a href="#" data-section="register" class="nav-link"><i class="fas fa-user-plus"></i> 注册</a></li>
+                        <li><a href="#" data-section="profile" class="nav-link"><i class="fas fa-user-circle"></i> 个人资料</a></li>
+                        <li><a href="#" data-section="user-management" class="nav-link admin-only"><i class="fas fa-users-cog"></i> 用户管理</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3><i class="fas fa-train"></i> 列车管理</h3>
+                    <ul class="nav-list">
+                        <li><a href="#" data-section="add-train" class="nav-link admin-only"><i class="fas fa-plus"></i> 添加列车</a></li>
+                        <li><a href="#" data-section="query-train" class="nav-link admin-only"><i class="fas fa-search"></i> 查询列车</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3><i class="fas fa-ticket-alt"></i> 票务管理</h3>
+                    <ul class="nav-list">
+                        <li><a href="#" data-section="release-ticket" class="nav-link admin-only"><i class="fas fa-paper-plane"></i> 发布车票</a></li>
+                        <li><a href="#" data-section="expire-ticket" class="nav-link admin-only"><i class="fas fa-ban"></i> 过期车票</a></li>
+                        <li><a href="#" data-section="query-remaining" class="nav-link"><i class="fas fa-search"></i> 查询余票</a></li>
+                        <li><a href="#" data-section="buy-ticket" class="nav-link"><i class="fas fa-shopping-cart"></i> 购票</a></li>
+                        <li><a href="#" data-section="my-orders" class="nav-link"><i class="fas fa-list"></i> 我的订单</a></li>
+                        <li><a href="#" data-section="refund-ticket" class="nav-link"><i class="fas fa-undo"></i> 退票</a></li>
+                    </ul>
+                </div>
+
+                <div class="nav-section">
+                    <h3><i class="fas fa-route"></i> 路线查询</h3>
+                    <ul class="nav-list">
+                        <li><a href="#" data-section="display-route" class="nav-link"><i class="fas fa-map"></i> 显示路线</a></li>
+                        <li><a href="#" data-section="best-path" class="nav-link"><i class="fas fa-star"></i> 最佳路径</a></li>
+                        <li><a href="#" data-section="accessibility" class="nav-link"><i class="fas fa-check-circle"></i> 可达性查询</a></li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 内容区域 -->
+            <div class="content-area">
+                <!-- 登录模块 -->
+                <div id="login" class="content-section">
+                    <h2><i class="fas fa-sign-in-alt"></i> 用户登录</h2>
+                    <form id="loginForm" class="form">
+                        <div class="form-group">
+                            <label for="loginUserId">用户ID:</label>
+                            <input type="number" id="loginUserId" name="userId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">密码:</label>
+                            <input type="password" id="loginPassword" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">登录</button>
+                    </form>
+                </div>
+
+                <!-- 注册模块 -->
+                <div id="register" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-user-plus"></i> 用户注册</h2>
+                    <form id="registerForm" class="form">
+                        <div class="form-group">
+                            <label for="registerUserId">用户ID:</label>
+                            <input type="number" id="registerUserId" name="userId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerUsername">用户名:</label>
+                            <input type="text" id="registerUsername" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">密码:</label>
+                            <input type="password" id="registerPassword" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">注册</button>
+                    </form>
+                </div>
+
+                <!-- 个人资料模块 -->
+                <div id="profile" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-user-circle"></i> 个人资料</h2>
+                    <div id="profileInfo" class="profile-info">
+                        <p>请先登录查看个人资料</p>
+                    </div>
+                    <div class="profile-actions">
+                        <button id="modifyPasswordBtn" class="btn btn-secondary">修改密码</button>
+                    </div>
+                </div>
+
+                <!-- 用户管理模块 -->
+                <div id="user-management" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-users-cog"></i> 用户管理</h2>
+                    <div class="admin-actions">
+                        <div class="form-group">
+                            <label for="queryUserId">查询用户ID:</label>
+                            <input type="number" id="queryUserId" name="userId">
+                            <button id="queryUserBtn" class="btn btn-primary">查询用户</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="modifyUserId">修改权限用户ID:</label>
+                            <input type="number" id="modifyUserId" name="userId">
+                            <label for="newPrivilege">新权限:</label>
+                            <input type="number" id="newPrivilege" name="privilege" min="0" max="2">
+                            <button id="modifyPrivilegeBtn" class="btn btn-warning">修改权限</button>
+                        </div>
+                    </div>
+                    <div id="userQueryResult" class="result-area"></div>
+                </div>
+
+                <!-- 添加列车模块 -->
+                <div id="add-train" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-plus"></i> 添加列车</h2>
+                    <form id="addTrainForm" class="form">
+                        <div class="form-group">
+                            <label for="trainId">车次ID:</label>
+                            <input type="text" id="trainId" name="trainId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="seatNum">席位数:</label>
+                            <input type="number" id="seatNum" name="seatNum" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stationCount">站点数:</label>
+                            <input type="number" id="stationCount" name="stationCount" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stations">站点名称 (用/分隔):</label>
+                            <input type="text" id="stations" name="stations" placeholder="北京/天津/济南/青岛" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="durations">时长 (用/分隔，分钟):</label>
+                            <input type="text" id="durations" name="durations" placeholder="35/95/160" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prices">票价 (用/分隔，元):</label>
+                            <input type="text" id="prices" name="prices" placeholder="29/97/118" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">添加列车</button>
+                    </form>
+                </div>
+
+                <!-- 查询列车模块 -->
+                <div id="query-train" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-search"></i> 查询列车</h2>
+                    <form id="queryTrainForm" class="form">
+                        <div class="form-group">
+                            <label for="queryTrainId">车次ID:</label>
+                            <input type="text" id="queryTrainId" name="trainId" required>
+                            <button type="submit" class="btn btn-primary">查询</button>
+                        </div>
+                    </form>
+                    <div id="trainQueryResult" class="result-area"></div>
+                </div>
+
+                <!-- 发布车票模块 -->
+                <div id="release-ticket" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-paper-plane"></i> 发布车票</h2>
+                    <form id="releaseTicketForm" class="form">
+                        <div class="form-group">
+                            <label for="releaseTrainId">车次ID:</label>
+                            <input type="text" id="releaseTrainId" name="trainId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="releaseDate">日期 (MM-DD):</label>
+                            <input type="text" id="releaseDate" name="date" placeholder="08-01" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">发布车票</button>
+                    </form>
+                </div>
+
+                <!-- 过期车票模块 -->
+                <div id="expire-ticket" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-ban"></i> 过期车票</h2>
+                    <form id="expireTicketForm" class="form">
+                        <div class="form-group">
+                            <label for="expireTrainId">车次ID:</label>
+                            <input type="text" id="expireTrainId" name="trainId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expireDate">日期 (MM-DD):</label>
+                            <input type="text" id="expireDate" name="date" placeholder="08-01" required>
+                        </div>
+                        <button type="submit" class="btn btn-warning">使车票过期</button>
+                    </form>
+                </div>
+
+                <!-- 查询余票模块 -->
+                <div id="query-remaining" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-search"></i> 查询余票</h2>
+                    <form id="queryRemainingForm" class="form">
+                        <div class="form-group">
+                            <label for="remainingTrainId">车次ID:</label>
+                            <input type="text" id="remainingTrainId" name="trainId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="remainingDate">日期 (MM-DD):</label>
+                            <input type="text" id="remainingDate" name="date" placeholder="08-01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="departureStation">出发站:</label>
+                            <input type="text" id="departureStation" name="departureStation" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">查询余票</button>
+                    </form>
+                    <div id="remainingResult" class="result-area"></div>
+                </div>
+
+                <!-- 购票模块 -->
+                <div id="buy-ticket" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-shopping-cart"></i> 购票</h2>
+                    <form id="buyTicketForm" class="form">
+                        <div class="form-group">
+                            <label for="buyTrainId">车次ID:</label>
+                            <input type="text" id="buyTrainId" name="trainId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="buyDate">日期 (MM-DD):</label>
+                            <input type="text" id="buyDate" name="date" placeholder="08-01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="buyDepartureStation">出发站:</label>
+                            <input type="text" id="buyDepartureStation" name="departureStation" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">购买车票</button>
+                    </form>
+                </div>
+
+                <!-- 我的订单模块 -->
+                <div id="my-orders" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-list"></i> 我的订单</h2>
+                    <button id="queryOrdersBtn" class="btn btn-primary">查询我的订单</button>
+                    <div id="ordersResult" class="result-area"></div>
+                </div>
+
+                <!-- 退票模块 -->
+                <div id="refund-ticket" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-undo"></i> 退票</h2>
+                    <form id="refundTicketForm" class="form">
+                        <div class="form-group">
+                            <label for="refundTrainId">车次ID:</label>
+                            <input type="text" id="refundTrainId" name="trainId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="refundDate">日期 (MM-DD):</label>
+                            <input type="text" id="refundDate" name="date" placeholder="08-01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="refundDepartureStation">出发站:</label>
+                            <input type="text" id="refundDepartureStation" name="departureStation" required>
+                        </div>
+                        <button type="submit" class="btn btn-warning">退票</button>
+                    </form>
+                </div>
+
+                <!-- 显示路线模块 -->
+                <div id="display-route" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-map"></i> 显示路线</h2>
+                    <form id="displayRouteForm" class="form">
+                        <div class="form-group">
+                            <label for="routeStart">起点站:</label>
+                            <input type="text" id="routeStart" name="startStation" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="routeEnd">终点站:</label>
+                            <input type="text" id="routeEnd" name="endStation" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">显示路线</button>
+                    </form>
+                    <div id="routeResult" class="result-area"></div>
+                </div>
+
+                <!-- 最佳路径模块 -->
+                <div id="best-path" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-star"></i> 最佳路径</h2>
+                    <form id="bestPathForm" class="form">
+                        <div class="form-group">
+                            <label for="bestPathStart">起点站:</label>
+                            <input type="text" id="bestPathStart" name="startStation" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bestPathEnd">终点站:</label>
+                            <input type="text" id="bestPathEnd" name="endStation" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="preference">偏好:</label>
+                            <select id="preference" name="preference">
+                                <option value="time">时间优先</option>
+                                <option value="price">价格优先</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">查询最佳路径</button>
+                    </form>
+                    <div id="bestPathResult" class="result-area"></div>
+                </div>
+
+                <!-- 可达性查询模块 -->
+                <div id="accessibility" class="content-section" style="display: none;">
+                    <h2><i class="fas fa-check-circle"></i> 可达性查询</h2>
+                    <form id="accessibilityForm" class="form">
+                        <div class="form-group">
+                            <label for="accessStart">起点站:</label>
+                            <input type="text" id="accessStart" name="startStation" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="accessEnd">终点站:</label>
+                            <input type="text" id="accessEnd" name="endStation" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">查询可达性</button>
+                    </form>
+                    <div id="accessibilityResult" class="result-area"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 消息提示 -->
+    <div id="messageToast" class="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

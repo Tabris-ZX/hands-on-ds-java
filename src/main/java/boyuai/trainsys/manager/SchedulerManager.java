@@ -1,7 +1,7 @@
 package boyuai.trainsys.manager;
 
 import boyuai.trainsys.core.TrainScheduler;
-import boyuai.trainsys.datastructure.BPlusTree;
+import boyuai.trainsys.datastructure.SimpleBPlusTree;
 import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.Types.*;
@@ -12,15 +12,15 @@ import boyuai.trainsys.util.Types.*;
  */
 public class SchedulerManager {
 
-    // 使用B+树存储列车调度信息，以列车ID为索引
-    private final BPlusTree<FixedString, TrainScheduler> schedulerInfo;
+    // 使用简化的B+树存储列车调度信息，以列车ID为索引
+    private final SimpleBPlusTree<FixedString, TrainScheduler> schedulerInfo;
 
     /**
      * 构造函数
      * @param filename 数据文件名
      */
     public SchedulerManager(String filename) {
-        this.schedulerInfo = new BPlusTree<>(filename);
+        this.schedulerInfo = new SimpleBPlusTree<>(filename);
     }
 
     /**

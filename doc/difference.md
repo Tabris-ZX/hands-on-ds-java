@@ -162,3 +162,59 @@ public class User {
 ```
 
 ### 数据存储部分差异
+1. **cpp中用map存储用户信息,而java中用hashmap存储用户信息**,例如:
+```cpp
+//cpp
+std::map<UserID, User> userTable;
+```
+```java
+//java
+private final Map<String, User> userTable = new HashMap<>();
+```
+2. **cpp中用vector存储车次信息,而java中用list存储车次信息**,例如:
+```cpp
+//cpp
+std::vector<Train> trainTable;
+```
+```java
+//java
+private final List<Train> trainTable = new ArrayList<>();
+```
+3. **cpp中用vector存储车票信息,而java中用list存储车票信息**,例如:
+```cpp
+//cpp
+std::vector<PurchaseInfo> purchaseTable;
+```
+```java
+//java
+private final List<PurchaseInfo> purchaseTable = new ArrayList<>();
+```
+4. **cpp中用vector存储车票信息,而java中用list存储车票信息**,例如:
+```cpp
+//cpp
+std::vector<StationInfo> stationTable;
+```
+```java
+//java
+private final List<StationInfo> stationTable = new ArrayList<>();
+```
+5. **cpp中用vector存储车票信息,而java中用list存储车票信息**,例如:
+```cpp
+//cpp
+std::vector<StationInfo> stationTable;
+```
+```java
+//java
+private final List<StationInfo> stationTable = new ArrayList<>();
+```
+6. **cpp中用vector存储车票信息,而java中用list存储车票信息**,例如:
+```cpp
+//cpp
+std::vector<StationInfo> stationTable;
+```
+```java
+//java
+private final List<StationInfo> stationTable = new ArrayList<>();
+```
+7. **cpp中用vector存储车票信息,而java中用list存储车票信息**,例如:
+

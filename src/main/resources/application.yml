@@ -1,0 +1,13 @@
+spring:
+  web:
+    resources:
+      static-locations: classpath:/static/
+      cache:
+        period: 0
+  mvc:
+    static-path-pattern: /static/**
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
