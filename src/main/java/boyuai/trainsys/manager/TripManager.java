@@ -1,55 +1,83 @@
 package boyuai.trainsys.manager;
 
 import boyuai.trainsys.info.TripInfo;
-import boyuai.trainsys.datastructure.BPlusTree;
-import boyuai.trainsys.datastructure.SeqList;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * 行程管理器
- * 负责管理用户的购票记录和行程信息
- */
 public class TripManager {
+    private final String dbPath = "data/hands-on-ds.db";
+    private final Connection conn;
 
-    // 数据成员：一个从 UserID 到 [一组 TripInfo]，展现此用户购买了什么票
-    private BPlusTree<Long, TripInfo> tripInfo;
-
-    /**
-     * 构造函数
-     * @param filename 数据文件名
-     */
-    public TripManager(String filename) {
-        this.tripInfo = new BPlusTree<>(filename);
+    public TripManager() throws SQLException {
+        conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS trip_info (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "user_id INTEGER, " +
+                        "train_id TEXT, " +
+                        "departure_station INTEGER, " +
+                        "arrival_station INTEGER, " +
+                        "type INTEGER, " +
+                        "duration INTEGER, " +
+                        "price INTEGER, " +
+                        "date TEXT)"
+        );
     }
 
-    /**
-     * 添加行程记录
-     * @param userID 用户ID
-     * @param trip 行程信息
-     */
-    public void addTrip(long userID, TripInfo trip) {
-        tripInfo.insert(userID, trip);
+    // 添加行程记录
+    public void addTrip(long userID, TripInfo trip) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO trip_info (user_id, train_id, departure_station, arrival_station, type, duration, price, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        ps.setLong(1, userID);
+        ps.setString(2, trip.getTrainID().toString());
+        ps.setInt(3, trip.getDepartureStation().value());
+        ps.setInt(4, trip.getArrivalStation().value());
+        ps.setInt(5, trip.getType());
+        ps.setInt(6, trip.getDuration());
+        ps.setInt(7, trip.getPrice());
+        ps.setString(8, trip.getDate().toString());
+        ps.executeUpdate();
+        ps.close();
     }
 
-    /**
-     * 查询用户的所有行程
-     * @param userID 用户ID
-     * @return 用户的多个 TripInfo
-     */
-    public SeqList<TripInfo> queryTrip(long userID) {
-        SeqList<TripInfo> trips = tripInfo.find(userID);
-        if (trips == null) {
-            return new SeqList<>();
+    // 查询用户的所有行程
+    public List<TripInfo> queryTrip(long userID) throws SQLException {
+        List<TripInfo> trips = new ArrayList<>();
+        PreparedStatement ps = conn.prepareStatement(
+                "SELECT * FROM trip_info WHERE user_id = ?");
+        ps.setLong(1, userID);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            TripInfo t = new TripInfo();
+            t.setTrainID(new boyuai.trainsys.util.Types.TrainID(rs.getString("train_id")));
+            t.setDepartureStation(new boyuai.trainsys.util.Types.StationID(rs.getInt("departure_station")));
+            t.setArrivalStation(new boyuai.trainsys.util.Types.StationID(rs.getInt("arrival_station")));
+            t.setType(rs.getInt("type"));
+            t.setDuration(rs.getInt("duration"));
+            t.setPrice(rs.getInt("price"));
+            t.setDate(new boyuai.trainsys.util.Date(rs.getString("date")));
+            trips.add(t);
         }
+        rs.close();
+        ps.close();
         return trips;
     }
 
-    /**
-     * 删除用户的某个行程记录
-     * @param userID 用户ID
-     * @param trip 要删除的行程信息
-     */
-    public void removeTrip(long userID, TripInfo trip) {
-        tripInfo.remove(userID, trip);
+    // 删除用户的某个行程记录
+    public void removeTrip(long userID, TripInfo trip) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM trip_info WHERE user_id=? AND train_id=? AND departure_station=? AND arrival_station=? AND type=? AND date=?"
+        );
+        ps.setLong(1, userID);
+        ps.setString(2, trip.getTrainID().toString());
+        ps.setInt(3, trip.getDepartureStation().value());
+        ps.setInt(4, trip.getArrivalStation().value());
+        ps.setInt(5, trip.getType());
+        ps.setString(6, trip.getDate().toString());
+        ps.executeUpdate();
+        ps.close();
     }
-
 }

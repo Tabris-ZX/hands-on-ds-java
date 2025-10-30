@@ -16,7 +16,6 @@ import boyuai.trainsys.util.Types.StationID;
 import boyuai.trainsys.util.Types.TrainID;
 import boyuai.trainsys.util.Types.UserID;
 import lombok.Data;
-import lombok.Getter;
 
 /*
  * part1 运行计划管理子系统（需要系统管理员权限）
@@ -37,14 +36,14 @@ public class TrainSystem {
     private final TripManager tripManager;
     private final StationManager stationManager;
 
-    public TrainSystem() {
-        this.stationManager = new StationManager("data/station.txt");
-        this.userManager = new UserManager("data/users");
+    public TrainSystem() throws java.sql.SQLException {
+        this.stationManager = new StationManager();
+        this.userManager = new UserManager();
         this.railwayGraph = new RailwayGraph();
-        this.schedulerManager = new SchedulerManager("data/schedulers");
-        this.ticketManager = new TicketManager("data/tickets");
+        this.schedulerManager = new SchedulerManager();
+        this.ticketManager = new TicketManager();
         this.waitingList = new PrioritizedWaitingList();
-        this.tripManager = new TripManager("data/trips");
+        this.tripManager = new TripManager();
 
         // 默认管理员账号ID为0
         UserID adminID = new UserID(0L);
@@ -63,11 +62,17 @@ public class TrainSystem {
             System.out.println("Permission denied.");
             return;
         }
-        if (schedulerManager.existScheduler(trainID)) {
-            System.out.println("TrainID existed.");
+        try {
+            if (schedulerManager.existScheduler(trainID)) {
+                System.out.println("TrainID existed.");
+                return;
+            }
+            schedulerManager.addScheduler(trainID, seatNum, passingStationNumber, stations, duration, price);
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
             return;
         }
-        schedulerManager.addScheduler(trainID, seatNum, passingStationNumber, stations, duration, price);
         for (int i = 0; i + 1 < passingStationNumber; i++) {
             railwayGraph.addRoute(stations[i], stations[i + 1], duration[i], price[i], new TrainID(trainID.toString()));
         }
@@ -79,19 +84,29 @@ public class TrainSystem {
             System.out.println("Permission denied.");
             return;
         }
-        TrainScheduler relatedInfo = schedulerManager.getScheduler(trainID);
-        if (relatedInfo == null) {
-            System.out.println("Train not found.");
-            return;
+        try {
+            TrainScheduler relatedInfo = schedulerManager.getScheduler(trainID);
+            if (relatedInfo == null) {
+                System.out.println("Train not found.");
+                return;
+            }
+            System.out.println(relatedInfo);
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
         }
-        System.out.println(relatedInfo);
     }
 
     // ===== Part 2: 票务管理（管理员） =====
     public void releaseTicket(TrainScheduler scheduler, Date date) {
         if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
-            ticketManager.releaseTicket(scheduler, date);
-            System.out.println("Ticket released.");
+            try {
+                ticketManager.releaseTicket(scheduler, date);
+                System.out.println("Ticket released.");
+            } catch (java.sql.SQLException e) {
+                System.out.println("数据库操作异常");
+                e.printStackTrace();
+            }
         } else {
             System.out.println("Permission denied.");
         }
@@ -99,16 +114,27 @@ public class TrainSystem {
 
     public void expireTicket(FixedString trainID, Date date) {
         if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
-            ticketManager.expireTicket(trainID, date);
-            System.out.println("Ticket expired.");
+            try {
+                ticketManager.expireTicket(trainID, date);
+                System.out.println("Ticket expired.");
+            } catch (java.sql.SQLException e) {
+                System.out.println("数据库操作异常");
+                e.printStackTrace();
+            }
         } else {
-            System.out.println("Permission denied.");
+            System.out.println("Permission denied。");
         }
     }
 
     // ===== Part 3: 交易 =====
     public int queryRemainingTicket(FixedString trainID, Date date, StationID departureStation) {
-        return ticketManager.querySeat(trainID, date, departureStation.value());
+        try {
+            return ticketManager.querySeat(trainID, date, departureStation.value());
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
+            return -1;
+        }
     }
 
     private boolean trySatisfyOrder() {
@@ -125,6 +151,31 @@ public class TrainSystem {
                 System.out.println("No enough tickets or scheduler not exists. Order failed.");
                 return false;
             } else {
+                try {
+                    ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
+                            purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
+
+                    TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
+                    int id = schedule.findStation(purchaseInfo.getDepartureStation());
+                    int duration = schedule.getDuration(id);
+                    int price = schedule.getPrice(id);
+                    StationID arrivalStation = schedule.getStation(id + 1);
+
+                    tripManager.addTrip(currentUser.getUserID().value(), new TripInfo(
+                            purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
+                            purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
+                    ));
+
+                    System.out.println("Order succeeded.");
+                    return true;
+                } catch (java.sql.SQLException e) {
+                    System.out.println("数据库操作异常");
+                    e.printStackTrace();
+                    return false;
+                }
+            }
+        } else {
+            try {
                 ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
                         purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
 
@@ -134,45 +185,39 @@ public class TrainSystem {
                 int price = schedule.getPrice(id);
                 StationID arrivalStation = schedule.getStation(id + 1);
 
-                tripManager.addTrip(currentUser.getUserID().value(), new TripInfo(
+                tripManager.removeTrip(currentUser.getUserID().value(), new TripInfo(
                         purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
-                        purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
+                        -purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
                 ));
-
-                System.out.println("Order succeeded.");
+                System.out.println("Refund succeeded.");
                 return true;
+            } catch (java.sql.SQLException e) {
+                System.out.println("数据库操作异常");
+                e.printStackTrace();
+                return false;
             }
-        } else {
-            ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
-                    purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
-
-            TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
-            int id = schedule.findStation(purchaseInfo.getDepartureStation());
-            int duration = schedule.getDuration(id);
-            int price = schedule.getPrice(id);
-            StationID arrivalStation = schedule.getStation(id + 1);
-
-            tripManager.removeTrip(currentUser.getUserID().value(), new TripInfo(
-                    purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
-                    -purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
-            ));
-            System.out.println("Refund succeeded.");
-            return true;
         }
     }
 
     public void queryMyTicket() {
         while (waitingList.isBusy()) trySatisfyOrder();
-        var tripInfo = tripManager.queryTrip(currentUser.getUserID().value());
-        for (int i = 0; i < tripInfo.length(); i++) {
-            System.out.println(tripInfo.visit(i));
+        try {
+            java.util.List<TripInfo> tripInfo = tripManager.queryTrip(currentUser.getUserID().value());
+            for (TripInfo t : tripInfo) {
+                System.out.println(t);
+            }
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
+            return;
         }
     }
 
     public void orderTicket(FixedString trainID, Date date, StationID departureStation) {
-        while (waitingList.isBusy()) trySatisfyOrder();
         waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), date, departureStation, +1));
         System.out.println("Ordering request has added to waiting list.");
+        // 立即处理队列
+        while (trySatisfyOrder()) {} // 处理完所有可处理订单
     }
 
     public void refundTicket(FixedString trainID, Date date, StationID departureStation) {
@@ -205,17 +250,23 @@ public class TrainSystem {
             return;
         }
         UserID uid = new UserID(userID);
-        if (!userManager.existUser(uid)) {
-            System.out.println("User not found. Login failed.");
+        try {
+            if (!userManager.existUser(uid)) {  // 检查用户是否存在
+                System.out.println("User not found. Login failed.");
+                return;
+            }
+            UserInfo userInfo = userManager.findUser(uid);
+            if (!userInfo.getPassword().equals(password)) {  // 检查密码是否正确
+                System.out.println("Wrong password. Login failed.");
+                return;
+            }
+            currentUser = userInfo;  // 登录成功，设置当前用户
+            System.out.println("Login succeeded.");
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
             return;
         }
-        UserInfo userInfo = userManager.findUser(uid);
-        if (!userInfo.getPassword().equals(password)) {
-            System.out.println("Wrong password. Login failed.");
-            return;
-        }
-        currentUser = userInfo;
-        System.out.println("Login succeeded.");
     }
 
     public void logout() {
@@ -229,63 +280,88 @@ public class TrainSystem {
 
     public void addUser(long userID, String username, String password) {
         UserID uid = new UserID(userID);
-        if (userManager.existUser(uid)) {
-            System.out.println("User ID existed.");
+        try {
+            if (userManager.existUser(uid)) {
+                System.out.println("User ID existed.");
+                return;
+            }
+            if (currentUser == null || currentUser.getUserID().value() == -1) {
+                System.out.println("Permission denied.");
+                return;
+            }
+            userManager.insertUser(uid, username, password, 0);
+            System.out.println("User added.");
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
             return;
         }
-        if (currentUser == null || currentUser.getUserID().value() == -1) {
-            System.out.println("Permission denied.");
-            return;
-        }
-        userManager.insertUser(uid, username, password, 0);
-        System.out.println("User added.");
     }
 
-    public void findUserInfoByUserID(long userID) {
+
+    public void findUserInfoByUserID(long userID) {  // 查询用户信息
         UserID uid = new UserID(userID);
-        if (!userManager.existUser(uid)) {
-            System.out.println("User not found.");
+        try {
+            if (!userManager.existUser(uid)) {  // 检查用户是否存在
+                System.out.println("User not found.");
+                return;
+            }
+            UserInfo userInfo = userManager.findUser(uid);  // 查找用户信息
+            if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
+                System.out.println("Permission denied.");
+                return;
+            }
+            System.out.println("UserID: " + userInfo.getUserID().value());  // 输出用户信息
+            System.out.println("UserName: " + userInfo.getUsername());  // 输出用户名
+            System.out.println("Password: " + userInfo.getPassword());  // 输出密码
+            System.out.println("Privilege: " + userInfo.getPrivilege());  // 输出权限
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
             return;
         }
-        UserInfo userInfo = userManager.findUser(uid);
-        if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
-            System.out.println("Permission denied.");
-            return;
-        }
-        System.out.println("UserID: " + userInfo.getUserID().value());
-        System.out.println("UserName: " + userInfo.getUsername());
-        System.out.println("Password: " + userInfo.getPassword());
-        System.out.println("Privilege: " + userInfo.getPrivilege());
     }
 
-    public void modifyUserPassword(long userID, String newPassword) {
+    public void modifyUserPassword(long userID, String newPassword) {  // 修改用户密码
         UserID uid = new UserID(userID);
-        if (!userManager.existUser(uid)) {
-            System.out.println("User not found.");
+        try {
+            if (!userManager.existUser(uid)) {  // 检查用户是否存在
+                System.out.println("User not found.");
+                return;
+            }
+            UserInfo userInfo = userManager.findUser(uid);  // 查找用户信息
+            if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
+                System.out.println("Modification forbidden.");
+                return;
+            }
+            userManager.modifyUserPassword(uid, newPassword);  // 修改用户密码
+            System.out.println("Modification succeeded.");
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
             return;
         }
-        UserInfo userInfo = userManager.findUser(uid);
-        if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
-            System.out.println("Modification forbidden.");
-            return;
-        }
-        userManager.modifyUserPassword(uid, newPassword);
-        System.out.println("Modification succeeded.");
     }
 
-    public void modifyUserPrivilege(long userID, int newPrivilege) {
+    public void modifyUserPrivilege(long userID, int newPrivilege) {  // 修改用户权限
         UserID uid = new UserID(userID);
-        if (!userManager.existUser(uid)) {
-            System.out.println("User not found.");
+        try {
+            if (!userManager.existUser(uid)) {  // 检查用户是否存在
+                System.out.println("User not found.");
+                return;
+            }
+            UserInfo userInfo = userManager.findUser(uid);  // 查找用户信息
+            if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
+                System.out.println("Modification forbidden.");
+                return;
+            }
+            userManager.modifyUserPrivilege(uid, newPrivilege);  // 修改用户权限    
+            System.out.println("Modifiaction succeeded.");
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库操作异常");
+            e.printStackTrace();
             return;
         }
-        UserInfo userInfo = userManager.findUser(uid);
-        if (currentUser == null || currentUser.getUserID().value() == -1 || currentUser.getPrivilege() <= userInfo.getPrivilege()) {
-            System.out.println("Modification forbidden.");
-            return;
-        }
-        userManager.modifyUserPrivilege(uid, newPrivilege);
-        System.out.println("Modifiaction succeeded.");
     }
 
 }

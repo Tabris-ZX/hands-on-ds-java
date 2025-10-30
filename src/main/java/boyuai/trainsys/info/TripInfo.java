@@ -42,6 +42,13 @@ public class TripInfo implements Comparable<TripInfo> {
         this.date = date;
     }
 
+    public int getType() {
+        return ticketNumber;
+    }
+    public void setType(int type) {
+        this.ticketNumber = type;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;

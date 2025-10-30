@@ -1,100 +1,102 @@
 package boyuai.trainsys.manager;
 
-import boyuai.trainsys.datastructure.BPlusTree;
-import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.info.UserInfo;
 import boyuai.trainsys.util.Types.UserID;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.sql.*;
 
 /**
- * 用户管理器
+ * 用户管理器（基于SQLite实现）
  */
 public class UserManager {
-    private BPlusTree<Long, UserInfo> userInfoTable;
-
-    // 内存缓存，避免持久层延迟导致的查找问题
-    private final Map<Long, UserInfo> cache = new HashMap<>();
+    private final String dbPath = "data/hands-on-ds.db";
+    private Connection conn;
 
     /**
-     * 构造函数
-     * @param filename 数据文件名
+     * 构造函数，建立数据库连接并确保表存在
      */
-    public UserManager(String filename) {
-        userInfoTable = new BPlusTree<>(filename);
+    public UserManager() throws SQLException {
+        conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS user_info(" +
+                        "user_id INTEGER PRIMARY KEY," +
+                        "username TEXT NOT NULL," +
+                        "password TEXT NOT NULL," +
+                        "privilege INTEGER NOT NULL)"
+        );
     }
 
-    /**
-     * 插入用户
-     */
-    public void insertUser(UserID userID, String username, String password, int privilege) {
-        UserInfo userInfo = new UserInfo(userID, username, password, privilege);
-        userInfoTable.insert(userID.value(), userInfo);
-        cache.put(userID.value(), userInfo);
+    /** 插入用户 */
+    public void insertUser(UserID userID, String username, String password, int privilege) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement(
+                "INSERT OR REPLACE INTO user_info(user_id, username, password, privilege) VALUES (?, ?, ?, ?)");
+        ps.setLong(1, userID.value());
+        ps.setString(2, username);
+        ps.setString(3, password);
+        ps.setInt(4, privilege);
+        ps.executeUpdate();
+        ps.close();
     }
 
-    /**
-     * 检查用户是否存在
-     */
-    public boolean existUser(UserID userID) {
-        if (cache.containsKey(userID.value())) return true;
-        SeqList<UserInfo> result = userInfoTable.find(userID.value());
-        boolean exists = !result.Empty();
-        if (exists) cache.put(userID.value(), result.visit(0));
+    /** 检查用户是否存在 */
+    public boolean existUser(UserID userID) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM user_info WHERE user_id = ?");
+        ps.setLong(1, userID.value());
+        ResultSet rs = ps.executeQuery();
+        boolean exists = rs.next();
+        rs.close();
+        ps.close();
         return exists;
     }
 
-    /**
-     * 查找用户
-     */
-    public UserInfo findUser(UserID userID) {
-        if (cache.containsKey(userID.value())) {
-            return cache.get(userID.value());
+    /** 查找用户 */
+    public UserInfo findUser(UserID userID) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("SELECT username, password, privilege FROM user_info WHERE user_id = ?");
+        ps.setLong(1, userID.value());
+        ResultSet rs = ps.executeQuery();
+        UserInfo user = null;
+        if (rs.next()) {
+            String username = rs.getString(1);
+            String password = rs.getString(2);
+            int privilege = rs.getInt(3);
+            user = new UserInfo(userID, username, password, privilege);
         }
-        SeqList<UserInfo> result = userInfoTable.find(userID.value());
-        if (!result.Empty()) {
-            UserInfo user = result.visit(0);
-            cache.put(userID.value(), user);
-            return user;
-        }
-        return null;
+        rs.close();
+        ps.close();
+        return user;
     }
 
-    /**
-     * 删除用户
-     */
-    public void removeUser(UserID userID) {
-        UserInfo user = findUser(userID);
-        if (user != null) {
-            userInfoTable.remove(userID.value(), user);
-            cache.remove(userID.value());
-        }
+    /** 删除用户 */
+    public void removeUser(UserID userID) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("DELETE FROM user_info WHERE user_id = ?");
+        ps.setLong(1, userID.value());
+        ps.executeUpdate();
+        ps.close();
     }
 
-    /**
-     * 修改用户权限
-     */
-    public void modifyUserPrivilege(UserID userID, int newPrivilege) {
-        UserInfo user = findUser(userID);
-        if (user != null) {
-            userInfoTable.remove(userID.value(), user);
-            user.setPrivilege(newPrivilege);
-            userInfoTable.insert(userID.value(), user);
-            cache.put(userID.value(), user);
-        }
+    /** 修改用户权限 */
+    public void modifyUserPrivilege(UserID userID, int newPrivilege) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("UPDATE user_info SET privilege = ? WHERE user_id = ?");
+        ps.setInt(1, newPrivilege);
+        ps.setLong(2, userID.value());
+        ps.executeUpdate();
+        ps.close();
     }
 
-    /**
-     * 修改用户密码
-     */
-    public void modifyUserPassword(UserID userID, String newPassword) {
-        UserInfo user = findUser(userID);
-        if (user != null) {
-            userInfoTable.remove(userID.value(), user);
-            user.setPassword(newPassword);
-            userInfoTable.insert(userID.value(), user);
-            cache.put(userID.value(), user);
+    /** 修改用户密码 */
+    public void modifyUserPassword(UserID userID, String newPassword) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("UPDATE user_info SET password = ? WHERE user_id = ?");
+        ps.setString(1, newPassword);
+        ps.setLong(2, userID.value());
+        ps.executeUpdate();
+        ps.close();
+    }
+
+    /** 关闭数据库连接，建议在系统关闭/重载时调用 */
+    public void close() throws SQLException {
+        if (conn != null && !conn.isClosed()) {
+            conn.close();
         }
     }
 }

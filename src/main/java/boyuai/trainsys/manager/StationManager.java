@@ -1,9 +1,7 @@
 package boyuai.trainsys.manager;
 
 import boyuai.trainsys.util.Types.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,39 +11,35 @@ import java.util.Map;
 public class StationManager {
     private final Map<Integer, String> idToName;
     private final Map<String, Integer> nameToID;
+    private final String dbPath = "data/hands-on-ds.db";
+    private Connection conn;
 
     /**
      * 构造函数
      * @param filename 站点数据文件名
      */
-    public StationManager(String filename) {
+    public StationManager() {
         idToName = new HashMap<>();
         nameToID = new HashMap<>();
-        loadStations(filename);
+        loadStationsFromDB();
     }
 
-    /**
-     * 从文件加载站点信息
-     * @param filename 文件名
-     */
-    private void loadStations(String filename) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.trim().split("\\s+");
-                if (parts.length >= 2) {
-                    try {
-                        int id = Integer.parseInt(parts[0]);
-                        String name = parts[1];
-                        idToName.put(id, name);
-                        nameToID.put(name, id);
-                    } catch (NumberFormatException e) {
-                        // 忽略格式错误的行
-                    }
-                }
+    private void loadStationsFromDB() {
+        try {
+            conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS station (id INTEGER PRIMARY KEY, name TEXT)");
+            ResultSet rs = stmt.executeQuery("SELECT id, name FROM station");
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                idToName.put(id, name);
+                nameToID.put(name, id);
             }
-        } catch (IOException e) {
-            System.err.println("无法加载站点文件: " + filename);
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            System.err.println("无法加载数据库中的站点数据: " + e.getMessage());
         }
     }
 

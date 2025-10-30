@@ -15,7 +15,14 @@ public class Main {
         // 初始化系统（实例化）
         System.out.println("当前工作目录: " + new File("").getAbsolutePath());
 
-        TrainSystem system = new TrainSystem();
+        TrainSystem system = null;
+        try {
+            system = new TrainSystem();
+        } catch (java.sql.SQLException e) {
+            System.out.println("数据库初始化失败！");
+            e.printStackTrace();
+            System.exit(1);
+        }
         CommandParser parser = new CommandParser(system);
 
         Scanner scanner = new Scanner(System.in);

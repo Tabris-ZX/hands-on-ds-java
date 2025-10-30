@@ -64,13 +64,13 @@ public class TrainScheduler implements Comparable<TrainScheduler> {
     }
 
     public void setPrice(int[] price) {
-        for (int i = 0; i + 1 < passingStationNum; i++) {
+        for (int i = 0; i < price.length; i++) {
             this.price[i] = price[i];
         }
     }
 
     public void setDuration(int[] duration) {
-        for (int i = 0; i + 1 < passingStationNum; i++) {
+        for (int i = 0; i < duration.length; i++) {
             this.duration[i] = duration[i];
         }
     }

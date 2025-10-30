@@ -1,38 +1,36 @@
 package boyuai.trainsys.datastructure;
 
-import boyuai.trainsys.datastructure.LinkQueue;
-import boyuai.trainsys.datastructure.Queue;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class QueueTest {
-    public static void main(String[] args) {
-        /**
-         * 测试LinkQueue
-         */
+
+    @Test
+    void linkQueue_basicEnqueueDequeue() {
         Queue<Integer> q = new LinkQueue<>();
-        System.out.println("LinkQueue测试：");
-        System.out.println("队列是否为空：" + q.isEmpty());
+        assertTrue(q.isEmpty());
         q.enQueue(1);
         q.enQueue(2);
         q.enQueue(3);
-        System.out.println("队列是否为空：" + q.isEmpty());
-        System.out.println("出队元素：" + q.deQueue());
-        System.out.println("出队元素：" + q.deQueue());
-        System.out.println("出队元素：" + q.deQueue());
-        System.out.println("队列是否为空：" + q.isEmpty());
-        System.out.println();
-        /**
-         * 测试PriorityQueue
-         */
+        assertFalse(q.isEmpty());
+        assertEquals(1, q.deQueue());
+        assertEquals(2, q.deQueue());
+        assertEquals(3, q.deQueue());
+        assertTrue(q.isEmpty());
+    }
+
+    @Test
+    void priorityQueue_basicEnqueueDequeue() {
         Queue<Integer> pq = new boyuai.trainsys.datastructure.PriorityQueue<>();
-        System.out.println("PriorityQueue测试：");
-        System.out.println("队列是否为空：" + pq.isEmpty());
+        assertTrue(pq.isEmpty());
         pq.enQueue(3);
         pq.enQueue(1);
         pq.enQueue(2);
-        System.out.println("队列是否为空：" + pq.isEmpty());
-        System.out.println("出队元素：" + pq.deQueue());
-        System.out.println("出队元素：" + pq.deQueue());
-        System.out.println("出队元素：" + pq.deQueue());
-        System.out.println("队列是否为空：" + pq.isEmpty());
+        assertFalse(pq.isEmpty());
+        assertEquals(1, pq.deQueue());
+        assertEquals(2, pq.deQueue());
+        assertEquals(3, pq.deQueue());
+        assertTrue(pq.isEmpty());
     }
 }

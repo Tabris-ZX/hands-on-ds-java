@@ -1,92 +1,105 @@
 package boyuai.trainsys.manager;
 
 import boyuai.trainsys.core.TrainScheduler;
-import boyuai.trainsys.datastructure.BPlusTree;
-import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.Types.*;
+import java.sql.*;
 
-/**
- * 列车调度管理器
- * 负责管理所有列车的运行计划
- */
+/** 列车调度管理器（基于SQLite重写） */
 public class SchedulerManager {
+    private final String dbPath = "data/hands-on-ds.db";
+    private final Connection conn;
 
-    // 使用B+树存储列车调度信息，以列车ID为索引
-    private final BPlusTree<FixedString, TrainScheduler> schedulerInfo;
-
-    /**
-     * 构造函数
-     * @param filename 数据文件名
-     */
-    public SchedulerManager(String filename) {
-        this.schedulerInfo = new BPlusTree<>(filename);
+    public SchedulerManager() throws SQLException {
+        conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate(
+                "CREATE TABLE IF NOT EXISTS train_scheduler (" +
+                "train_id TEXT PRIMARY KEY, " +
+                "seat_num INTEGER, " +
+                "passing_num INTEGER, " +
+                "stations TEXT, " +
+                "duration TEXT, " +
+                "price TEXT)"
+        );
     }
 
-    /**
-     * 添加一个运行计划
-     * @param trainID 列车ID
-     * @param seatNum 座位数量
-     * @param passingStationNumber 途径站点数
-     * @param stations 站点数组
-     * @param duration 各段运行时间数组
-     * @param price 各段票价数组
-     */
-    public void addScheduler(FixedString trainID, int seatNum,
-                             int passingStationNumber, int[] stations,
-                             int[] duration, int[] price) {
-        TrainScheduler scheduler = new TrainScheduler();
-        scheduler.setTrainID(new TrainID(trainID.toString()));
+    /** 添加一个运行计划 */
+    public void addScheduler(FixedString trainID, int seatNum, int passingStationNumber, int[] stations, int[] duration, int[] price) throws SQLException {
+        // 把int数组stations/price/duration拼接为字符串存TEXT
+        String stationStr = joinIntArray(stations, passingStationNumber);
+        String durationStr = joinIntArray(duration, passingStationNumber-1);
+        String priceStr = joinIntArray(price, passingStationNumber-1);
 
-        // 添加所有站点
-        for (int i = 0; i < passingStationNumber; i++) {
-            scheduler.addStation(new StationID(stations[i]));
+        PreparedStatement ps = conn.prepareStatement(
+            "INSERT OR REPLACE INTO train_scheduler(train_id, seat_num, passing_num, stations, duration, price) VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        ps.setString(1, trainID.toString());
+        ps.setInt(2, seatNum);
+        ps.setInt(3, passingStationNumber);
+        ps.setString(4, stationStr); // 用逗号串存TEXT
+        ps.setString(5, durationStr);
+        ps.setString(6, priceStr);
+        ps.executeUpdate();
+        ps.close();
+    }
+
+    /** 查询某个ID的运行计划是否存在 */
+    public boolean existScheduler(FixedString trainID) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("SELECT 1 FROM train_scheduler WHERE train_id=?");
+        ps.setString(1, trainID.toString());
+        ResultSet rs = ps.executeQuery();
+        boolean exists = rs.next();
+        rs.close();
+        ps.close();
+        return exists;
+    }
+
+    /** 查询某个ID的运行计划 */
+    public TrainScheduler getScheduler(FixedString trainID) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("SELECT * FROM train_scheduler WHERE train_id=?");
+        ps.setString(1, trainID.toString());
+        ResultSet rs = ps.executeQuery();
+        TrainScheduler scheduler = null;
+        if (rs.next()) {
+            scheduler = new TrainScheduler();
+            scheduler.setTrainID(new TrainID(rs.getString("train_id")));
+            scheduler.setSeatNum(rs.getInt("seat_num"));
+            scheduler.setDuration(parseIntArray(rs.getString("duration")));
+            scheduler.setPrice(parseIntArray(rs.getString("price")));
+            // 还原站点
+            int[] stationIDs = parseIntArray(rs.getString("stations"));
+            for (int id : stationIDs) scheduler.addStation(new StationID(id));
         }
-
-        // 设置运行时间和票价
-        scheduler.setDuration(duration);
-        scheduler.setPrice(price);
-        scheduler.setSeatNum(seatNum);
-
-        // 插入到B+树中
-        schedulerInfo.insert(trainID, scheduler);
+        rs.close();
+        ps.close();
+        return scheduler;
     }
 
-    /**
-     * 查询某个ID的运行计划是否存在
-     * @param trainID 列车ID
-     * @return 是否存在
-     */
-    public boolean existScheduler(FixedString trainID) {
-        SeqList<TrainScheduler> list = schedulerInfo.find(trainID);
-        return list != null && list.length() > 0;
+    /** 删除某个ID的运行计划 */
+    public void removeScheduler(FixedString trainID) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement("DELETE FROM train_scheduler WHERE train_id=?");
+        ps.setString(1, trainID.toString());
+        ps.executeUpdate();
+        ps.close();
     }
 
-    /**
-     * 查询某个ID的运行计划
-     * @param trainID 列车ID
-     * @return 运行计划对象，如果不存在返回null
-     */
-    public TrainScheduler getScheduler(FixedString trainID) {
-        SeqList<TrainScheduler> relatedInfo = schedulerInfo.find(trainID);
-        // 一个trainID理应只对应一个运行计划，但由于这里的B+树是一对多的B+树，所以需要使用seqList
-        if (relatedInfo != null && relatedInfo.length() > 0) {
-            return relatedInfo.visit(0);
+    private String joinIntArray(int[] arr, int len) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(arr[i]);
         }
-        return null;
+        return sb.toString();
     }
 
-    /**
-     * 删除某个ID的运行计划
-     * @param trainID 列车ID
-     */
-    public void removeScheduler(FixedString trainID) {
-        SeqList<TrainScheduler> relatedInfo = schedulerInfo.find(trainID);
-        if (relatedInfo != null) {
-            for (int i = 0; i < relatedInfo.length(); i++) {
-                schedulerInfo.remove(trainID, relatedInfo.visit(i));
-            }
+    private int[] parseIntArray(String s) {
+        if (s == null || s.length() == 0) return new int[0];
+        String[] parts = s.split(",");
+        int[] arr = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            arr[i] = Integer.parseInt(parts[i]);
         }
+        return arr;
     }
-
 }
