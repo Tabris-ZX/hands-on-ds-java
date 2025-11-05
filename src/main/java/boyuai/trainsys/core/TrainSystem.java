@@ -4,18 +4,20 @@ import boyuai.trainsys.config.Config;
 import boyuai.trainsys.info.PurchaseInfo;
 import boyuai.trainsys.info.TripInfo;
 import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.manager.RouteSectionManager;
 import boyuai.trainsys.manager.SchedulerManager;
 import boyuai.trainsys.manager.StationManager;
 import boyuai.trainsys.manager.TicketManager;
 import boyuai.trainsys.manager.TripManager;
 import boyuai.trainsys.manager.UserManager;
-import boyuai.trainsys.util.Date;
+import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.PrioritizedWaitingList;
 import boyuai.trainsys.util.Types.StationID;
 import boyuai.trainsys.util.Types.TrainID;
 import boyuai.trainsys.util.Types.UserID;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 /*
  * part1 运行计划管理子系统（需要系统管理员权限）
@@ -25,10 +27,12 @@ import lombok.Data;
  * part5 用户管理子系统
  */
 @Data
+@Slf4j
 public class TrainSystem {
 
     private UserInfo currentUser;
     private final UserManager userManager;
+    private final RouteSectionManager routeSectionManager;
     private final RailwayGraph railwayGraph;
     private final SchedulerManager schedulerManager;
     private final TicketManager ticketManager;
@@ -39,7 +43,8 @@ public class TrainSystem {
     public TrainSystem() throws java.sql.SQLException {
         this.stationManager = new StationManager();
         this.userManager = new UserManager();
-        this.railwayGraph = new RailwayGraph();
+        this.routeSectionManager = new RouteSectionManager();
+        this.railwayGraph = new RailwayGraph(routeSectionManager);
         this.schedulerManager = new SchedulerManager();
         this.ticketManager = new TicketManager();
         this.waitingList = new PrioritizedWaitingList();
@@ -56,21 +61,30 @@ public class TrainSystem {
     }
 
     // ===== Part 1: 运行计划管理（管理员） =====
-    public void addTrainScheduler(FixedString trainID, int seatNum, int passingStationNumber,
+    public void addTrainScheduler(FixedString trainID, int seatNum, String startTime, int passingStationNumber,
                                   int[] stations, int[] duration, int[] price) {
         if (currentUser == null || currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
             System.out.println("Permission denied.");
             return;
         }
+        
+        // 检查站点ID是否有效
+        for (int i = 0; i < passingStationNumber; i++) {
+            if (stations[i] < 0 || stations[i] >= Config.MAX_STATIONID) {
+                System.out.println("Invalid station ID: " + stations[i] + ". Station not found or ID out of range.");
+                return;
+            }
+        }
+        
         try {
             if (schedulerManager.existScheduler(trainID)) {
                 System.out.println("TrainID existed.");
                 return;
             }
-            schedulerManager.addScheduler(trainID, seatNum, passingStationNumber, stations, duration, price);
+            schedulerManager.addScheduler(trainID, seatNum, startTime, passingStationNumber, stations, duration, price);
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
         for (int i = 0; i + 1 < passingStationNumber; i++) {
@@ -92,34 +106,38 @@ public class TrainSystem {
             }
             System.out.println(relatedInfo);
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
         }
     }
 
     // ===== Part 2: 票务管理（管理员） =====
-    public void releaseTicket(TrainScheduler scheduler, Date date) {
+    public void releaseTicket(TrainScheduler scheduler, Time departureTime) {
         if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
+            if (scheduler == null) {
+                System.out.println("Train not found. Please add train first.");
+                return;
+            }
             try {
-                ticketManager.releaseTicket(scheduler, date);
+                ticketManager.releaseTicket(scheduler, departureTime);
                 System.out.println("Ticket released.");
             } catch (java.sql.SQLException e) {
+                log.error("数据库操作异常", e);
                 System.out.println("数据库操作异常");
-                e.printStackTrace();
             }
         } else {
             System.out.println("Permission denied.");
         }
     }
 
-    public void expireTicket(FixedString trainID, Date date) {
+    public void expireTicket(FixedString trainID, Time departureTime) {
         if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
             try {
-                ticketManager.expireTicket(trainID, date);
+                ticketManager.expireTicket(trainID, departureTime);
                 System.out.println("Ticket expired.");
             } catch (java.sql.SQLException e) {
+                log.error("数据库操作异常", e);
                 System.out.println("数据库操作异常");
-                e.printStackTrace();
             }
         } else {
             System.out.println("Permission denied。");
@@ -127,12 +145,12 @@ public class TrainSystem {
     }
 
     // ===== Part 3: 交易 =====
-    public int queryRemainingTicket(FixedString trainID, Date date, StationID departureStation) {
+    public int queryRemainingTicket(FixedString trainID, Time departureTime, StationID departureStation) {
         try {
-            return ticketManager.querySeat(trainID, date, departureStation.value());
+            return ticketManager.querySeat(trainID, departureTime, departureStation.value());
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return -1;
         }
     }
@@ -146,13 +164,13 @@ public class TrainSystem {
 
         if (purchaseInfo.isOrdering()) {
             int remainingTickets = queryRemainingTicket(new TrainID(purchaseInfo.getTrainID().toString()),
-                    purchaseInfo.getDate(), purchaseInfo.getDepartureStation());
+                    purchaseInfo.getDepartureTime(), purchaseInfo.getDepartureStation());
             if (remainingTickets < purchaseInfo.getType()) {
                 System.out.println("No enough tickets or scheduler not exists. Order failed.");
                 return false;
             } else {
                 try {
-                    ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
+                    ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDepartureTime(),
                             purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
 
                     TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
@@ -163,20 +181,20 @@ public class TrainSystem {
 
                     tripManager.addTrip(currentUser.getUserID().value(), new TripInfo(
                             purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
-                            purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
+                            purchaseInfo.getType(), duration, price, purchaseInfo.getDepartureTime()
                     ));
 
                     System.out.println("Order succeeded.");
                     return true;
                 } catch (java.sql.SQLException e) {
+                    log.error("数据库操作异常", e);
                     System.out.println("数据库操作异常");
-                    e.printStackTrace();
                     return false;
                 }
             }
         } else {
             try {
-                ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDate(),
+                ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDepartureTime(),
                         purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
 
                 TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
@@ -187,13 +205,13 @@ public class TrainSystem {
 
                 tripManager.removeTrip(currentUser.getUserID().value(), new TripInfo(
                         purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
-                        -purchaseInfo.getType(), duration, price, purchaseInfo.getDate()
+                        -purchaseInfo.getType(), duration, price, purchaseInfo.getDepartureTime()
                 ));
                 System.out.println("Refund succeeded.");
                 return true;
             } catch (java.sql.SQLException e) {
+                log.error("数据库操作异常", e);
                 System.out.println("数据库操作异常");
-                e.printStackTrace();
                 return false;
             }
         }
@@ -207,27 +225,33 @@ public class TrainSystem {
                 System.out.println(t);
             }
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
     }
 
-    public void orderTicket(FixedString trainID, Date date, StationID departureStation) {
-        waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), date, departureStation, +1));
+    public void orderTicket(FixedString trainID, Time departureTime, StationID departureStation) {
+        waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), departureTime, departureStation, +1));
         System.out.println("Ordering request has added to waiting list.");
         // 立即处理队列
         while (trySatisfyOrder()) {} // 处理完所有可处理订单
     }
 
-    public void refundTicket(FixedString trainID, Date date, StationID departureStation) {
+    public void refundTicket(FixedString trainID, Time departureTime, StationID departureStation) {
         while (waitingList.isBusy()) trySatisfyOrder();
-        waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), date, departureStation, -1));
+        waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), departureTime, departureStation, -1));
         System.out.println("Refunding request has added to waiting list.");
     }
 
     // ===== Part 4: 路线查询 =====
     public void findAllRoute(StationID departureID, StationID arrivalID) {
+        // 检查站点ID是否有效
+        if (departureID.value() < 0 || arrivalID.value() < 0) {
+            System.out.println("Station not found. Please check station names.");
+            return;
+        }
+        
         if (!railwayGraph.checkStationAccessibility(departureID.value(), arrivalID.value())) {
             System.out.println("Disconnected. No route found.");
             return;
@@ -236,6 +260,12 @@ public class TrainSystem {
     }
 
     public void findBestRoute(StationID departureID, StationID arrivalID, int preference) {
+        // 检查站点ID是否有效
+        if (departureID.value() < 0 || arrivalID.value() < 0) {
+            System.out.println("Station not found. Please check station names.");
+            return;
+        }
+        
         if (!railwayGraph.checkStationAccessibility(departureID.value(), arrivalID.value())) {
             System.out.println("Disconnected. No route found.");
             return;
@@ -263,8 +293,8 @@ public class TrainSystem {
             currentUser = userInfo;  // 登录成功，设置当前用户
             System.out.println("Login succeeded.");
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
     }
@@ -285,15 +315,11 @@ public class TrainSystem {
                 System.out.println("User ID existed.");
                 return;
             }
-            if (currentUser == null || currentUser.getUserID().value() == -1) {
-                System.out.println("Permission denied.");
-                return;
-            }
             userManager.insertUser(uid, username, password, 0);
             System.out.println("User added.");
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
     }
@@ -316,8 +342,8 @@ public class TrainSystem {
             System.out.println("Password: " + userInfo.getPassword());  // 输出密码
             System.out.println("Privilege: " + userInfo.getPrivilege());  // 输出权限
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
     }
@@ -337,8 +363,8 @@ public class TrainSystem {
             userManager.modifyUserPassword(uid, newPassword);  // 修改用户密码
             System.out.println("Modification succeeded.");
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
     }
@@ -358,8 +384,8 @@ public class TrainSystem {
             userManager.modifyUserPrivilege(uid, newPrivilege);  // 修改用户权限    
             System.out.println("Modifiaction succeeded.");
         } catch (java.sql.SQLException e) {
+            log.error("数据库操作异常", e);
             System.out.println("数据库操作异常");
-            e.printStackTrace();
             return;
         }
     }

@@ -1,9 +1,5 @@
 package boyuai.trainsys.datastructure;
 
-// TODO：BST 二分查找表
-
-
-
 /**
  * 二分查找表
  * @param <KeyType> 键类型，继承课比较类

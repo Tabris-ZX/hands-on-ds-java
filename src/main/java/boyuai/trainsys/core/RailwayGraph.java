@@ -5,50 +5,60 @@ import boyuai.trainsys.datastructure.AdjListGraph;
 import boyuai.trainsys.datastructure.DisjointSet;
 import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.config.Config;
+import boyuai.trainsys.manager.RouteSectionManager;
 import boyuai.trainsys.util.Types.*;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.sql.*;
 
+/**
+ * 铁路线路图
+ * <p>
+ * 使用图数据结构表示铁路网络，支持：
+ * <ul>
+ *   <li>路线区段的添加和管理</li>
+ *   <li>站点连通性检查（基于并查集）</li>
+ *   <li>路线查询（DFS遍历）</li>
+ *   <li>最短路径计算（Dijkstra算法）</li>
+ *   <li>数据持久化（通过 RouteSectionManager）</li>
+ * </ul>
+ * <p>
+ * 数据结构设计：
+ * <ul>
+ *   <li>邻接表图：存储路线区段的详细信息</li>
+ *   <li>并查集：快速判断站点间的连通性</li>
+ *   <li>内存池：缓存路线区段信息对象</li>
+ * </ul>
+ */
 @Data
+@Slf4j
 public class RailwayGraph {
 
-    // 使用邻接表图存储"存在性"，同时自维护可遍历的邻接结构
+    /** 邻接表图，存储路线区段信息 */
     private AdjListGraph<RouteSectionInfo> routeGraph;
-    private List<List<Edge>> adjacency; // 自维护的可遍历邻接表
+    
+    /** 自维护的邻接表结构，便于遍历 */
+    private List<List<Edge>> adjacency;
 
-    // 并查集用于快速判断站点连通性
+    /** 并查集，用于快速判断站点连通性 */
     private DisjointSet stationSet;
 
-    // 路段信息内存池
+    /** 路段信息内存池 */
     private SeqList<RouteSectionInfo> routeSectionPool;
 
-    // 站点、区段持久化: 初始化和存盘到数据库
-    private final String dbPath = "data/hands-on-ds.db";
-    private Connection conn;
-    public void initDB() throws SQLException {
-        conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
-        Statement stmt = conn.createStatement();
-        stmt.executeUpdate("CREATE TABLE IF NOT EXISTS station (id INTEGER PRIMARY KEY, name TEXT)");
-        stmt.executeUpdate("CREATE TABLE IF NOT EXISTS route_section (" +
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "train_id TEXT, " +
-                "departure_id INTEGER, " +
-                "arrival_id INTEGER, " +
-                "price INTEGER, " +
-                "duration INTEGER)");
-        // 记录每个站点所属的连通分量（并查集根）
-        stmt.executeUpdate("CREATE TABLE IF NOT EXISTS station_component (" +
-                "station_id INTEGER PRIMARY KEY, " +
-                "component_id INTEGER)");
-        stmt.close();
-    }
+    /** 路线区段管理器（负责数据库操作） */
+    private final RouteSectionManager routeSectionManager;
 
     /**
-     * 构造函数
+     * 构造铁路线路图
+     * <p>
+     * 初始化图结构、并查集和内存池
+     * 
+     * @param routeSectionManager 路线区段管理器，用于数据库持久化
      */
-    public RailwayGraph() {
+    public RailwayGraph(RouteSectionManager routeSectionManager) {
+        this.routeSectionManager = routeSectionManager;
         this.routeGraph = new AdjListGraph<>(Config.MAX_STATIONID);
         this.adjacency = new ArrayList<>(Config.MAX_STATIONID);
         for (int i = 0; i < Config.MAX_STATIONID; i++) adjacency.add(new ArrayList<>());
@@ -56,13 +66,40 @@ public class RailwayGraph {
         this.routeSectionPool = new SeqList<>();
     }
 
+    /**
+     * 边的内部表示
+     * <p>
+     * 用于在邻接表中存储路线区段信息
+     */
     private static class Edge {
+        /** 目标站点ID */
         int end;
+        /** 路线区段详细信息 */
         RouteSectionInfo info;
-        Edge(int end, RouteSectionInfo info) { this.end = end; this.info = info; }
+        
+        Edge(int end, RouteSectionInfo info) { 
+            this.end = end; 
+            this.info = info; 
+        }
     }
 
-    // 向运行图中加入一条边
+    /**
+     * 向铁路线路图中添加一条路线区段
+     * <p>
+     * 执行以下操作：
+     * <ol>
+     *   <li>创建路线区段信息对象并加入内存池</li>
+     *   <li>更新图结构和邻接表</li>
+     *   <li>使用并查集标记站点连通性</li>
+     *   <li>将数据持久化到数据库</li>
+     * </ol>
+     * 
+     * @param departureStationID 出发站ID
+     * @param arrivalStationID 到达站ID
+     * @param duration 运行时长（分钟）
+     * @param price 票价
+     * @param trainID 车次ID
+     */
     public void addRoute(int departureStationID, int arrivalStationID,
                          int duration, int price, TrainID trainID) {
         // 新建一条 SectionInfo 并将其放入内存池
@@ -77,40 +114,44 @@ public class RailwayGraph {
         stationSet.join(x, y);
         // 记录两个端点当前的连通分量根到数据库
         try {
-            saveStationComponentToDB(departureStationID, stationSet.find(departureStationID));
-            saveStationComponentToDB(arrivalStationID, stationSet.find(arrivalStationID));
+            routeSectionManager.saveStationComponent(departureStationID, stationSet.find(departureStationID));
+            routeSectionManager.saveStationComponent(arrivalStationID, stationSet.find(arrivalStationID));
         } catch (java.sql.SQLException e) {
-            System.out.println("写入站点连通分量失败");
-            e.printStackTrace();
+            log.error("写入站点连通分量失败", e);
         }
         // 同步写入数据库
         try {
-            saveSectionToDB(trainID, departureStationID, arrivalStationID, duration, price);
+            routeSectionManager.saveSection(trainID, departureStationID, arrivalStationID, duration, price);
         } catch (java.sql.SQLException e) {
-            System.out.println("写入数据库异常");
-            e.printStackTrace();
+            log.error("写入数据库异常", e);
         }
     }
 
     /**
      * 检查两个站点是否连通
+     * <p>
+     * 使用并查集快速判断连通性，时间复杂度接近 O(1)
+     * 
      * @param departureStationID 出发站ID
      * @param arrivalStationID 到达站ID
-     * @return 是否连通
+     * @return 如果两站点连通返回 true，否则返回 false
      */
     public boolean checkStationAccessibility(int departureStationID, int arrivalStationID) {
-        System.out.println(departureStationID + " " + arrivalStationID);
-        System.out.println(stationSet.find(departureStationID) + " " + stationSet.find(arrivalStationID));
+        log.debug("检查站点连通性: {} -> {}", departureStationID, arrivalStationID);
+        log.debug("连通分量根: {} -> {}", stationSet.find(departureStationID), stationSet.find(arrivalStationID));
         // 利用并查集判断连通性（使用便捷方法 connected）
         return stationSet.connected(departureStationID, arrivalStationID);
     }
 
     /**
-     * 深度优先搜索查找路径
-     * @param curIdx 当前节点索引
-     * @param arrivalIdx 目标节点索引
-     * @param prevStations 路径上的站点列表
-     * @param visited 访问标记数组
+     * 深度优先搜索查找所有可达路径
+     * <p>
+     * 递归地查找从当前站点到目标站点的所有路径，并输出到控制台
+     * 
+     * @param curIdx 当前站点索引
+     * @param arrivalIdx 目标站点索引
+     * @param prevStations 已访问的站点列表（路径）
+     * @param visited 访问标记数组，用于避免环路
      */
     private void routeDfs(int curIdx, int arrivalIdx,
                           SeqList<Integer> prevStations, boolean[] visited) {
@@ -118,11 +159,11 @@ public class RailwayGraph {
 
         // 已找到一条路径，输出它
         if (curIdx == arrivalIdx) {
-            System.out.print("route found: ");
+            StringBuilder route = new StringBuilder("route found: ");
             for (int i = 0; i < prevStations.length(); i++) {
-                System.out.print(prevStations.visit(i) + " ");
+                route.append(prevStations.visit(i)).append(" ");
             }
-            System.out.println();
+            log.info(route.toString());
             prevStations.remove(prevStations.length() - 1);
             return;
         }
@@ -142,7 +183,10 @@ public class RailwayGraph {
     }
 
     /**
-     * 显示从出发站到到达站的所有路线
+     * 显示从出发站到到达站的所有可达路线
+     * <p>
+     * 使用深度优先搜索遍历所有可能的路径，并输出到控制台
+     * 
      * @param departureStationID 出发站ID
      * @param arrivalStationID 到达站ID
      */
@@ -153,10 +197,16 @@ public class RailwayGraph {
     }
 
     /**
-     * 使用Dijkstra算法查找最短路径
+     * 使用Dijkstra算法计算最短路径
+     * <p>
+     * 根据指定的优化目标（价格或时间），计算从出发站到到达站的最优路径，
+     * 并输出路径和总代价
+     * <p>
+     * 时间复杂度：O(V²)，其中 V 是站点数量
+     * 
      * @param departureStationID 出发站ID
      * @param arrivalStationID 到达站ID
-     * @param type 0-按价格最优，1-按时间最优
+     * @param type 优化目标：0-按价格最优，1-按时间最优
      */
     public void shortestPath(int departureStationID, int arrivalStationID, int type) {
         int numOfVer = routeGraph.NumOfVer();
@@ -206,7 +256,7 @@ public class RailwayGraph {
 
         // 检查是否可达
         if (distance[arrivalStationID] == Long.MAX_VALUE / 2) {
-            System.out.println("No path found.");
+            log.info("No path found.");
             return;
         }
 
@@ -222,35 +272,45 @@ public class RailwayGraph {
         path.insert(0, departureStationID);
 
         // 输出最短路
-        System.out.print("shortest path: ");
+        StringBuilder pathStr = new StringBuilder("shortest path: ");
         for (int i = 0; i < path.length(); i++) {
-            System.out.print(path.visit(i) + " ");
+            pathStr.append(path.visit(i)).append(" ");
         }
-        System.out.println();
+        log.info(pathStr.toString());
 
         // 输出总代价
         if (type == 1) {
-            System.out.println("Total time: " + distance[arrivalStationID]);
+            log.info("Total time: {}", distance[arrivalStationID]);
         } else {
-            System.out.println("Total price: " + distance[arrivalStationID]);
+            log.info("Total price: {}", distance[arrivalStationID]);
         }
     }
 
-    // 加载所有区段和车站到图结构
-    public void loadFromDB() throws SQLException {
-        if (conn == null) initDB();
-        // 加载所有区段
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM route_section");
-        while (rs.next()) {
+    /**
+     * 从数据库加载所有路线区段到图结构
+     * <p>
+     * 执行以下操作：
+     * <ol>
+     *   <li>从数据库加载所有路线区段数据</li>
+     *   <li>构建图结构和邻接表</li>
+     *   <li>更新并查集的连通性</li>
+     *   <li>同步连通分量信息到数据库</li>
+     * </ol>
+     * 
+     * @throws java.sql.SQLException 如果数据库操作失败
+     */
+    public void loadFromDB() throws java.sql.SQLException {
+        // 从管理器加载所有区段
+        List<RouteSectionManager.RouteSectionData> sections = routeSectionManager.loadAllSections();
+        for (RouteSectionManager.RouteSectionData sectionData : sections) {
             RouteSectionInfo section = new RouteSectionInfo(
-                new boyuai.trainsys.util.Types.TrainID(rs.getString("train_id")),
-                new boyuai.trainsys.util.Types.StationID(rs.getInt("arrival_id")),
-                rs.getInt("price"),
-                rs.getInt("duration")
+                sectionData.trainID,
+                new StationID(sectionData.arrivalID),
+                sectionData.price,
+                sectionData.duration
             );
-            int departureID = rs.getInt("departure_id");
-            int arrivalID = rs.getInt("arrival_id");
+            int departureID = sectionData.departureID;
+            int arrivalID = sectionData.arrivalID;
             // 录入到运行图、邻接表、内存池
             this.routeSectionPool.insert(this.routeSectionPool.length(), section);
             this.routeGraph.insert(departureID, arrivalID, section);
@@ -261,55 +321,49 @@ public class RailwayGraph {
             stationSet.join(x, y);
             // 同步记录当前两个端点的连通分量
             try {
-                saveStationComponentToDB(departureID, stationSet.find(departureID));
-                saveStationComponentToDB(arrivalID, stationSet.find(arrivalID));
+                routeSectionManager.saveStationComponent(departureID, stationSet.find(departureID));
+                routeSectionManager.saveStationComponent(arrivalID, stationSet.find(arrivalID));
             } catch (java.sql.SQLException e) {
-                System.out.println("写入站点连通分量失败");
-                e.printStackTrace();
+                log.error("写入站点连通分量失败", e);
             }
         }
-        rs.close();
-        stmt.close();
-    }
-    // 保存区段到数据库
-    public void saveSectionToDB(TrainID trainID, int departureID, int arrivalID, int duration, int price) throws SQLException {
-        if (conn == null) initDB();
-        PreparedStatement ps = conn.prepareStatement(
-            "INSERT INTO route_section (train_id, departure_id, arrival_id, price, duration) VALUES (?, ?, ?, ?, ?)"
-        );
-        ps.setString(1, trainID.toString());
-        ps.setInt(2, departureID);
-        ps.setInt(3, arrivalID);
-        ps.setInt(4, price);
-        ps.setInt(5, duration);
-        ps.executeUpdate();
-        ps.close();
     }
 
     /**
-     * 从数据库重建所有图结构和站点连通分量，并同步到station_component表
+     * 从数据库重建所有图结构和站点连通分量
+     * <p>
+     * 清空内存中的所有数据结构，重新从数据库加载数据并重建：
+     * <ol>
+     *   <li>清空图结构、邻接表、并查集和内存池</li>
+     *   <li>从数据库重新加载所有路线区段</li>
+     *   <li>重建图结构和连通性</li>
+     *   <li>清空并重新写入站点连通分量表</li>
+     * </ol>
+     * <p>
+     * 通常在需要完全刷新数据时使用
+     * 
+     * @throws java.sql.SQLException 如果数据库操作失败
      */
-    public void refreshConnectivityFromDB() throws SQLException {
-        if (conn == null) initDB();
+    public void refreshConnectivityFromDB() throws java.sql.SQLException {
         // 清空邻接表、内存池和并查集
         this.routeGraph = new AdjListGraph<>(Config.MAX_STATIONID);
         for (int i = 0; i < adjacency.size(); i++) adjacency.get(i).clear();
         this.stationSet = new DisjointSet(Config.MAX_STATIONID);
+        this.routeSectionPool = new SeqList<>();
         // 记录实际出现过的所有站点id
         java.util.HashSet<Integer> usedStations = new java.util.HashSet<>();
-        // 加载所有区段并重新建图和联通分量
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM route_section");
-        while (rs.next()) {
-            int departureID = rs.getInt("departure_id");
-            int arrivalID = rs.getInt("arrival_id");
+        // 从管理器加载所有区段并重新建图和联通分量
+        List<RouteSectionManager.RouteSectionData> sections = routeSectionManager.loadAllSections();
+        for (RouteSectionManager.RouteSectionData sectionData : sections) {
+            int departureID = sectionData.departureID;
+            int arrivalID = sectionData.arrivalID;
             usedStations.add(departureID);
             usedStations.add(arrivalID);
             RouteSectionInfo section = new RouteSectionInfo(
-                new boyuai.trainsys.util.Types.TrainID(rs.getString("train_id")),
-                new boyuai.trainsys.util.Types.StationID(arrivalID),
-                rs.getInt("price"),
-                rs.getInt("duration")
+                sectionData.trainID,
+                new StationID(arrivalID),
+                sectionData.price,
+                sectionData.duration
             );
             this.routeSectionPool.insert(this.routeSectionPool.length(), section);
             this.routeGraph.insert(departureID, arrivalID, section);
@@ -317,28 +371,11 @@ public class RailwayGraph {
             // 联通分量合并
             stationSet.union(departureID, arrivalID);
         }
-        rs.close();
-        stmt.close();
-        // 清空原有staion_component表
-        stmt = conn.createStatement();
-        stmt.executeUpdate("DELETE FROM station_component");
-        stmt.close();
+        // 清空原有station_component表
+        routeSectionManager.clearStationComponents();
         // 重新写入所有当前站点的component_id
         for (int sid : usedStations) {
-            saveStationComponentToDB(sid, stationSet.find(sid));
+            routeSectionManager.saveStationComponent(sid, stationSet.find(sid));
         }
-    }
-
-    // 记录单个站点所属连通分量（根）。已存在则覆盖更新
-    private void saveStationComponentToDB(int stationId, int componentId) throws SQLException {
-        if (conn == null) initDB();
-        PreparedStatement ps = conn.prepareStatement(
-            "INSERT INTO station_component (station_id, component_id) VALUES (?, ?) " +
-            "ON CONFLICT(station_id) DO UPDATE SET component_id = excluded.component_id"
-        );
-        ps.setInt(1, stationId);
-        ps.setInt(2, componentId);
-        ps.executeUpdate();
-        ps.close();
     }
 }

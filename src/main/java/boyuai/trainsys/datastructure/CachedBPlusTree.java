@@ -1,5 +1,8 @@
 package boyuai.trainsys.datastructure;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Comparator;
 
 /**
@@ -8,6 +11,8 @@ import java.util.Comparator;
  * @param <KeyType> 键类型
  * @param <ValueType> 值类型
  */
+@Setter
+@Getter
 public class CachedBPlusTree<KeyType, ValueType> {
     
     private BPlusTree<KeyType, ValueType> storage;  // 持久化存储

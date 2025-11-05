@@ -31,8 +31,42 @@ public class Date implements Comparable<Date> {
 
     // 从字符串构造日期，格式为 "MM-DD"
     public Date(String str) {
+        // 1. 检查空值和长度
+        if (str == null || str.length() != 5) {
+            throw new IllegalArgumentException("日期格式必须是 MM-DD（长度为5），当前输入: " + str);
+        }
+        
+        // 2. 检查分隔符
+        if (str.charAt(2) != '-') {
+            throw new IllegalArgumentException("日期格式必须是 MM-DD，第3位必须是 '-'，当前输入: " + str);
+        }
+        
+        // 3. 检查是否为数字
+        for (int i = 0; i < 5; i++) {
+            if (i == 2) continue;  // 跳过分隔符
+            if (!Character.isDigit(str.charAt(i))) {
+                throw new IllegalArgumentException("日期中包含非数字字符，当前输入: " + str);
+            }
+        }
+        
+        // 4. 解析月份和日期
         this.mon = (str.charAt(0) - '0') * 10 + (str.charAt(1) - '0');
         this.mday = (str.charAt(3) - '0') * 10 + (str.charAt(4) - '0');
+        
+        // 5. 验证月份范围（1-12）
+        if (mon < 1 || mon > 12) {
+            throw new IllegalArgumentException(
+                String.format("月份必须在 1-12 之间，当前: %d（输入: %s）", mon, str)
+            );
+        }
+        
+        // 6. 验证日期范围（1-当月最大天数）
+        if (mday < 1 || mday > MDAY_NUMBER[mon]) {
+            throw new IllegalArgumentException(
+                String.format("%d月的日期必须在 1-%d 之间，当前: %d（输入: %s）", 
+                    mon, MDAY_NUMBER[mon], mday, str)
+            );
+        }
     }
 
     // 复制构造函数

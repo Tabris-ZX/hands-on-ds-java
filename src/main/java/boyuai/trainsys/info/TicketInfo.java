@@ -1,6 +1,6 @@
 package boyuai.trainsys.info;
 
-import boyuai.trainsys.util.Date;
+import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.Types.TrainID;
 import boyuai.trainsys.util.Types.StationID;
 import lombok.Getter;
@@ -10,6 +10,7 @@ import java.util.Objects;
 
 /**
  * 车票信息类
+ * 包含发车时间的车票信息
  */
 @Setter
 @Getter
@@ -17,10 +18,10 @@ public class TicketInfo implements Comparable<TicketInfo> {
     private TrainID trainID;
     private StationID departureStation;
     private StationID arrivalStation;
-    private int seatNum;
-    private int price;
-    private int duration;
-    private Date date;
+    private int seatNum;       // 余票数量
+    private int price;         // 票价
+    private int duration;      // 运行时长（分钟）
+    private Time departureTime; // 出发时间
 
     /**
      * 默认构造函数
@@ -32,14 +33,14 @@ public class TicketInfo implements Comparable<TicketInfo> {
      * 构造函数
      */
     public TicketInfo(TrainID trainID, StationID departureStation, StationID arrivalStation,
-                      int seatNum, int price, int duration, Date date) {
+                      int seatNum, int price, int duration, Time departureTime) {
         this.trainID = trainID;
         this.departureStation = departureStation;
         this.arrivalStation = arrivalStation;
         this.seatNum = seatNum;
         this.price = price;
         this.duration = duration;
-        this.date = date;
+        this.departureTime = departureTime;
     }
 
     @Override
@@ -53,12 +54,12 @@ public class TicketInfo implements Comparable<TicketInfo> {
                 Objects.equals(trainID, that.trainID) &&
                 Objects.equals(departureStation, that.departureStation) &&
                 Objects.equals(arrivalStation, that.arrivalStation) &&
-                Objects.equals(date, that.date);
+                Objects.equals(departureTime, that.departureTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(trainID, departureStation, arrivalStation, seatNum, price, duration, date);
+        return Objects.hash(trainID, departureStation, arrivalStation, seatNum, price, duration, departureTime);
     }
 
     @Override
@@ -72,7 +73,7 @@ public class TicketInfo implements Comparable<TicketInfo> {
         cmp = Integer.compare(this.arrivalStation.value(), other.arrivalStation.value());
         if (cmp != 0) return cmp;
 
-        cmp = this.date.compareTo(other.date);
+        cmp = this.departureTime.compareTo(other.departureTime);
         if (cmp != 0) return cmp;
 
         cmp = Integer.compare(this.seatNum, other.seatNum);
@@ -84,43 +85,28 @@ public class TicketInfo implements Comparable<TicketInfo> {
         return Integer.compare(this.duration, other.duration);
     }
 
-    public void setTrainID(TrainID trainID) {
-        this.trainID = trainID;
-    }
-
-    public void setDepartureStation(StationID departureStation) {
-        this.departureStation = departureStation;
-    }
-
-    public void setArrivalStation(StationID arrivalStation) {
-        this.arrivalStation = arrivalStation;
-    }
-
-    public void setSeatNum(int seatNum) {
-        this.seatNum = seatNum;
-    }
-
-    public void setPrice(int price) {
-        this.price = price;
-    }
-
-    public void setDuration(int duration) {
-        this.duration = duration;
-    }
-
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
     @Override
     public String toString() {
+        Time arrivalTime = departureTime.addMinutes(duration);
         return "TrainID: " + trainID + "\n" +
                 "Departure Station: " + departureStation + "\n" +
                 "Arrival Station: " + arrivalStation + "\n" +
+                "Departure Time: " + departureTime + "\n" +
+                "Arrival Time: " + arrivalTime + "\n" +
                 "Seat Number: " + seatNum + "\n" +
                 "Price: " + price + "\n" +
-                "Duration: " + duration + "\n" +
-                "Date: " + date;
+                "Duration: " + duration + " minutes";
+    }
+    
+    // 兼容旧代码的方法
+    @Deprecated
+    public Time getDate() {
+        return departureTime;
+    }
+    
+    @Deprecated
+    public void setDate(Time time) {
+        this.departureTime = time;
     }
 
 }

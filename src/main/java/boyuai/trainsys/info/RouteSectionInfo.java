@@ -46,37 +46,4 @@ public class RouteSectionInfo {
         this.price = other.price;
         this.duration = other.duration;
     }
-
-    // Getters and Setters
-    public TrainID getTrainID() {
-        return trainID;
-    }
-
-    public void setTrainID(TrainID trainID) {
-        this.trainID = trainID;
-    }
-
-    public StationID getArrivalStation() {
-        return arrivalStation;
-    }
-
-    public void setArrivalStation(StationID arrivalStation) {
-        this.arrivalStation = arrivalStation;
-    }
-
-    public int getPrice() {
-        return price;
-    }
-
-    public void setPrice(int price) {
-        this.price = price;
-    }
-
-    public int getDuration() {
-        return duration;
-    }
-
-    public void setDuration(int duration) {
-        this.duration = duration;
-    }
 }

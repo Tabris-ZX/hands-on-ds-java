@@ -6,6 +6,8 @@ import boyuai.trainsys.info.*;
 import boyuai.trainsys.manager.*;
 import boyuai.trainsys.util.Types.*;
 import boyuai.trainsys.datastructure.SeqList;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,6 +15,7 @@ import java.util.Map;
  * 命令解析器
  * 负责解析用户输入的命令并调用相应的系统功能
  */
+@Slf4j
 public class CommandParser {
 
     // 存放参数，例如 argMap.get('u') 存放的是 -u 后面的参数
@@ -141,14 +144,14 @@ public class CommandParser {
                     case "release_ticket":
                         trainSystem.releaseTicket(
                                 schedulerManager.getScheduler(new FixedString(argMap.get('i'))),
-                                new Date(argMap.get('d'))
+                                new Time(argMap.get('d'))
                         );
                         break;
 
                     case "expire_ticket":
                         trainSystem.expireTicket(
                                 new FixedString(argMap.get('i')),
-                                new Date(argMap.get('d'))
+                                new Time(argMap.get('d'))
                         );
                         break;
 
@@ -166,7 +169,7 @@ public class CommandParser {
                     case "query_remaining":
                         int remaining = trainSystem.queryRemainingTicket(
                                 new FixedString(argMap.get('i')),
-                                new Date(argMap.get('d')),
+                                new Time(argMap.get('d')),
                                 stationManager.getStationID(argMap.get('f'))
                         );
                         System.out.println("Remaining ticket:" + remaining);
@@ -175,7 +178,7 @@ public class CommandParser {
                     case "buy_ticket":
                         trainSystem.orderTicket(
                                 new FixedString(argMap.get('i')),
-                                new Date(argMap.get('d')),
+                                new Time(argMap.get('d')),
                                 stationManager.getStationID(argMap.get('f'))
                         );
                         break;
@@ -187,7 +190,7 @@ public class CommandParser {
                     case "refund_ticket":
                         trainSystem.refundTicket(
                                 new FixedString(argMap.get('i')),
-                                new Date(argMap.get('d')),
+                                new Time(argMap.get('d')),
                                 stationManager.getStationID(argMap.get('f'))
                         );
                         break;
@@ -214,7 +217,8 @@ public class CommandParser {
                         break;
                 }
             } catch (Exception e) {
-                System.err.println("Error executing command: " + e.getMessage());
+                log.error("执行命令时发生错误", e);
+                System.out.println("Error executing command: " + e.getMessage());
                 exitCode = -1;
             }
         }
@@ -224,15 +228,20 @@ public class CommandParser {
 
     /**
      * 解析添加列车命令
+     * 格式：add_train -i <车次> -m <座位数> -n <站点数> -s <站点列表> -t <首发时间/时长列表> -p <票价列表>
+     * 注意：-t 参数第一个值是首发时间（HH:MM），后面是各区段运行时长（分钟）
      */
     private void parseAddTrain() {
         SeqList<String> stationsString = splitTokens(argMap.get('s'), '/');
         SeqList<String> pricesString = splitTokens(argMap.get('p'), '/');
-        SeqList<String> durationsString = splitTokens(argMap.get('t'), '/');
+        SeqList<String> timeDurationsString = splitTokens(argMap.get('t'), '/');
 
         int[] stations = new int[stationsString.length()];
         int[] prices = new int[pricesString.length()];
-        int[] durations = new int[durationsString.length()];
+        
+        // 第一个值是首发时间（HH:MM），后面是时长
+        String startTime = timeDurationsString.visit(0);
+        int[] durations = new int[timeDurationsString.length() - 1];
 
         for (int i = 0; i < stationsString.length(); i++) {
             stations[i] = stationManager.getStationID(stationsString.visit(i)).value();
@@ -242,13 +251,14 @@ public class CommandParser {
             prices[i] = (int)stringToNumber(pricesString.visit(i));
         }
 
-        for (int i = 0; i < durationsString.length(); i++) {
-            durations[i] = (int)stringToNumber(durationsString.visit(i));
+        for (int i = 0; i < durations.length; i++) {
+            durations[i] = (int)stringToNumber(timeDurationsString.visit(i + 1));
         }
 
         trainSystem.addTrainScheduler(
                 new FixedString(argMap.get('i')),
                 (int)stringToNumber(argMap.get('m')),
+                startTime,
                 (int)stringToNumber(argMap.get('n')),
                 stations,
                 durations,

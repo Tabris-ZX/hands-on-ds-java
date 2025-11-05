@@ -1,6 +1,6 @@
 package boyuai.trainsys.info;
 
-import boyuai.trainsys.util.Date;
+import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.Types.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,14 +8,14 @@ import lombok.Setter;
 
 /**
  * 购票信息类
+ * 用于购票/退票请求队列
  */
 @Getter
 @Setter
 public class PurchaseInfo implements Comparable<PurchaseInfo> {
-    // Getters and Setters
     private UserID userID;
     private TrainID trainID;
-    private Date date;
+    private Time departureTime;  // 出发时间
     private StationID departureStation;
     private int type;  // 1表示购票，-1表示退票
 
@@ -29,14 +29,14 @@ public class PurchaseInfo implements Comparable<PurchaseInfo> {
      * 构造函数
      * @param userID 用户ID
      * @param trainID 火车ID
-     * @param date 日期
+     * @param departureTime 出发时间
      * @param departureStation 出发站
      * @param type 类型（1表示购票，-1表示退票）
      */
-    public PurchaseInfo(UserID userID, TrainID trainID, Date date, StationID departureStation, int type) {
+    public PurchaseInfo(UserID userID, TrainID trainID, Time departureTime, StationID departureStation, int type) {
         this.userID = userID;
         this.trainID = trainID;
-        this.date = date;
+        this.departureTime = departureTime;
         this.departureStation = departureStation;
         this.type = type;
     }
@@ -67,8 +67,8 @@ public class PurchaseInfo implements Comparable<PurchaseInfo> {
         cmp = this.trainID.compareTo(other.trainID);
         if (cmp != 0) return cmp;
 
-        // 按日期比较
-        cmp = this.date.compareTo(other.date);
+        // 按出发时间比较
+        cmp = this.departureTime.compareTo(other.departureTime);
         if (cmp != 0) return cmp;
 
         // 按出发站比较
@@ -77,6 +77,17 @@ public class PurchaseInfo implements Comparable<PurchaseInfo> {
 
         // 按类型比较
         return Integer.compare(this.type, other.type);
+    }
+    
+    // 兼容旧代码的方法
+    @Deprecated
+    public Time getDate() {
+        return departureTime;
+    }
+    
+    @Deprecated
+    public void setDate(Time time) {
+        this.departureTime = time;
     }
 
 }
