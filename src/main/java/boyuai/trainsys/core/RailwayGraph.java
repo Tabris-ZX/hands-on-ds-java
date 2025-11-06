@@ -146,23 +146,25 @@ public class RailwayGraph {
     /**
      * 深度优先搜索查找所有可达路径
      * <p>
-     * 递归地查找从当前站点到目标站点的所有路径，并输出到控制台
+     * 递归地查找从当前站点到目标站点的所有路径，并收集结果
      * 
      * @param curIdx 当前站点索引
      * @param arrivalIdx 目标站点索引
      * @param prevStations 已访问的站点列表（路径）
      * @param visited 访问标记数组，用于避免环路
+     * @param result 用于收集结果的StringBuilder
      */
     private void routeDfs(int curIdx, int arrivalIdx,
-                          SeqList<Integer> prevStations, boolean[] visited) {
+                          SeqList<Integer> prevStations, boolean[] visited, StringBuilder result) {
         prevStations.insert(prevStations.length(), curIdx);
 
-        // 已找到一条路径，输出它
+        // 已找到一条路径，收集它
         if (curIdx == arrivalIdx) {
             StringBuilder route = new StringBuilder("route found: ");
             for (int i = 0; i < prevStations.length(); i++) {
                 route.append(prevStations.visit(i)).append(" ");
             }
+            result.append(route.toString()).append("\n");
             log.info(route.toString());
             prevStations.remove(prevStations.length() - 1);
             return;
@@ -173,7 +175,7 @@ public class RailwayGraph {
         // 遍历所有邻接节点
         for (Edge e : adjacency.get(curIdx)) {
             if (!visited[e.end]) {
-                routeDfs(e.end, arrivalIdx, prevStations, visited);
+                routeDfs(e.end, arrivalIdx, prevStations, visited, result);
             }
         }
 
@@ -185,30 +187,40 @@ public class RailwayGraph {
     /**
      * 显示从出发站到到达站的所有可达路线
      * <p>
-     * 使用深度优先搜索遍历所有可能的路径，并输出到控制台
+     * 使用深度优先搜索遍历所有可能的路径，并返回结果字符串
      * 
      * @param departureStationID 出发站ID
      * @param arrivalStationID 到达站ID
+     * @return 包含所有路线的结果字符串，如果没有路径则返回"未找到路径"
      */
-    public void displayRoute(int departureStationID, int arrivalStationID) {
+    public String displayRoute(int departureStationID, int arrivalStationID) {
+        if (!checkStationAccessibility(departureStationID, arrivalStationID)) {
+            return "未找到路径";
+        }
         boolean[] visited = new boolean[routeGraph.NumOfVer()];
         SeqList<Integer> prev = new SeqList<>();
-        routeDfs(departureStationID, arrivalStationID, prev, visited);
+        StringBuilder result = new StringBuilder();
+        routeDfs(departureStationID, arrivalStationID, prev, visited, result);
+        if (result.length() == 0) {
+            return "未找到路径";
+        }
+        return result.toString().trim();
     }
 
     /**
      * 使用Dijkstra算法计算最短路径
      * <p>
      * 根据指定的优化目标（价格或时间），计算从出发站到到达站的最优路径，
-     * 并输出路径和总代价
+     * 并返回路径和总代价
      * <p>
      * 时间复杂度：O(V²)，其中 V 是站点数量
      * 
      * @param departureStationID 出发站ID
      * @param arrivalStationID 到达站ID
      * @param type 优化目标：0-按价格最优，1-按时间最优
+     * @return 包含最短路径和总代价的结果字符串，如果没有路径则返回"未找到路径"
      */
-    public void shortestPath(int departureStationID, int arrivalStationID, int type) {
+    public String shortestPath(int departureStationID, int arrivalStationID, int type) {
         int numOfVer = routeGraph.NumOfVer();
 
         // 使用朴素 Dijkstra 算法求解最短路
@@ -257,7 +269,7 @@ public class RailwayGraph {
         // 检查是否可达
         if (distance[arrivalStationID] == Long.MAX_VALUE / 2) {
             log.info("No path found.");
-            return;
+            return "未找到路径";
         }
 
         // 反向寻路，找到一条最短路径
@@ -271,19 +283,33 @@ public class RailwayGraph {
         }
         path.insert(0, departureStationID);
 
-        // 输出最短路
+        // 构建结果字符串
+        StringBuilder result = new StringBuilder("最短路径: ");
+        for (int i = 0; i < path.length(); i++) {
+            result.append(path.visit(i));
+            if (i < path.length() - 1) {
+                result.append(" -> ");
+            }
+        }
+        result.append("\n");
+        
+        // 添加总代价
+        if (type == 1) {
+            result.append("总时间: ").append(distance[arrivalStationID]).append(" 分钟");
+            log.info("Total time: {}", distance[arrivalStationID]);
+        } else {
+            result.append("总价格: ").append(distance[arrivalStationID]).append(" 元");
+            log.info("Total price: {}", distance[arrivalStationID]);
+        }
+        
+        // 同时输出到日志
         StringBuilder pathStr = new StringBuilder("shortest path: ");
         for (int i = 0; i < path.length(); i++) {
             pathStr.append(path.visit(i)).append(" ");
         }
         log.info(pathStr.toString());
 
-        // 输出总代价
-        if (type == 1) {
-            log.info("Total time: {}", distance[arrivalStationID]);
-        } else {
-            log.info("Total price: {}", distance[arrivalStationID]);
-        }
+        return result.toString();
     }
 
     /**

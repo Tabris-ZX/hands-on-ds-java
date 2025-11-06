@@ -106,6 +106,27 @@ public class StationManager {
     }
     
     /**
+     * 根据站点名称获取站点ID（返回Integer）
+     */
+    public Integer nameToID(String stationName) {
+        return nameToID.get(stationName);
+    }
+    
+    /**
+     * 根据站点ID获取站点名称（返回String）
+     */
+    public String idToName(int stationId) {
+        return idToName.get(stationId);
+    }
+    
+    /**
+     * 获取所有站点名称列表
+     */
+    public java.util.List<String> getAllStationNames() {
+        return new java.util.ArrayList<>(nameToID.keySet());
+    }
+    
+    /**
      * 从 data/station.txt 文件加载站点数据到数据库
      * <p>
      * 文件格式：每行一个站点，格式为 "ID 站点名"

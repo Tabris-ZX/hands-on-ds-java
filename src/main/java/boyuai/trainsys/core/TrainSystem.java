@@ -19,6 +19,8 @@ import boyuai.trainsys.util.Types.UserID;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 /*
  * part1 运行计划管理子系统（需要系统管理员权限）
  * part2 票务管理子系统（需要系统管理员权限）
@@ -50,6 +52,15 @@ public class TrainSystem {
         this.waitingList = new PrioritizedWaitingList();
         this.tripManager = new TripManager();
 
+        // 从数据库加载路线区段数据到图结构
+        try {
+            railwayGraph.loadFromDB();
+            log.info("成功从数据库加载路线区段数据");
+        } catch (java.sql.SQLException e) {
+            log.error("从数据库加载路线区段数据失败", e);
+            // 不抛出异常，允许系统继续运行（可能数据库为空）
+        }
+
         // 默认管理员账号ID为0
         UserID adminID = new UserID(0L);
         if (userManager.existUser(adminID)) {
@@ -64,33 +75,42 @@ public class TrainSystem {
     public void addTrainScheduler(FixedString trainID, int seatNum, String startTime, int passingStationNumber,
                                   int[] stations, int[] duration, int[] price) {
         if (currentUser == null || currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
-            System.out.println("Permission denied.");
-            return;
+            log.warn("添加车次权限不足，用户: {}", currentUser != null ? currentUser.getUserID().value() : "null");
+            throw new RuntimeException("权限不足，需要管理员权限");
         }
         
         // 检查站点ID是否有效
         for (int i = 0; i < passingStationNumber; i++) {
             if (stations[i] < 0 || stations[i] >= Config.MAX_STATIONID) {
-                System.out.println("Invalid station ID: " + stations[i] + ". Station not found or ID out of range.");
-                return;
+                log.warn("无效的站点ID: {}", stations[i]);
+                throw new RuntimeException("无效的站点ID: " + stations[i] + "，站点不存在或ID超出范围");
             }
+        }
+        
+        // 验证数组长度
+        if (duration.length != passingStationNumber - 1) {
+            throw new RuntimeException("时长数组长度错误，应该有 " + (passingStationNumber - 1) + " 个值");
+        }
+        if (price.length != passingStationNumber - 1) {
+            throw new RuntimeException("票价数组长度错误，应该有 " + (passingStationNumber - 1) + " 个值");
         }
         
         try {
             if (schedulerManager.existScheduler(trainID)) {
-                System.out.println("TrainID existed.");
-                return;
+                log.warn("车次ID已存在: {}", trainID);
+                throw new RuntimeException("车次ID已存在: " + trainID);
             }
             schedulerManager.addScheduler(trainID, seatNum, startTime, passingStationNumber, stations, duration, price);
         } catch (java.sql.SQLException e) {
             log.error("数据库操作异常", e);
-            System.out.println("数据库操作异常");
-            return;
+            throw new RuntimeException("数据库操作失败: " + e.getMessage(), e);
         }
+        
+        // 添加到路线图
         for (int i = 0; i + 1 < passingStationNumber; i++) {
             railwayGraph.addRoute(stations[i], stations[i + 1], duration[i], price[i], new TrainID(trainID.toString()));
         }
-        System.out.println("Train added.");
+        log.info("车次添加成功: {}", trainID);
     }
 
     public void queryTrainScheduler(FixedString trainID) {
@@ -179,7 +199,7 @@ public class TrainSystem {
                     int price = schedule.getPrice(id);
                     StationID arrivalStation = schedule.getStation(id + 1);
 
-                    tripManager.addTrip(currentUser.getUserID().value(), new TripInfo(
+                    tripManager.addTrip(purchaseInfo.getUserID().value(), new TripInfo(
                             purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
                             purchaseInfo.getType(), duration, price, purchaseInfo.getDepartureTime()
                     ));
@@ -193,25 +213,55 @@ public class TrainSystem {
                 }
             }
         } else {
+            // 退票逻辑
             try {
+                // 检查车次是否存在
+                TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
+                if (schedule == null) {
+                    log.warn("退票失败：车次不存在 {}", purchaseInfo.getTrainID());
+                    return false;
+                }
+                
+                // 检查用户是否有该订单
+                List<TripInfo> userTrips = tripManager.queryTrip(purchaseInfo.getUserID().value());
+                boolean hasOrder = false;
+                TripInfo targetTrip = null;
+                for (TripInfo trip : userTrips) {
+                    if (trip.getTrainID().equals(purchaseInfo.getTrainID()) &&
+                        trip.getDepartureStation().equals(purchaseInfo.getDepartureStation()) &&
+                        trip.getDepartureTime().equals(purchaseInfo.getDepartureTime()) &&
+                        trip.getType() > 0) {  // 只查找购票记录（type > 0）
+                        hasOrder = true;
+                        targetTrip = trip;
+                        break;
+                    }
+                }
+                
+                if (!hasOrder || targetTrip == null) {
+                    log.warn("退票失败：用户 {} 没有该订单", purchaseInfo.getUserID().value());
+                    return false;
+                }
+                
+                // 更新余票（增加票数）
                 ticketManager.updateSeat(new TrainID(purchaseInfo.getTrainID().toString()), purchaseInfo.getDepartureTime(),
                         purchaseInfo.getDepartureStation().value(), -purchaseInfo.getType());
 
-                TrainScheduler schedule = schedulerManager.getScheduler(new FixedString(purchaseInfo.getTrainID().toString()));
-                int id = schedule.findStation(purchaseInfo.getDepartureStation());
-                int duration = schedule.getDuration(id);
-                int price = schedule.getPrice(id);
-                StationID arrivalStation = schedule.getStation(id + 1);
-
-                tripManager.removeTrip(currentUser.getUserID().value(), new TripInfo(
-                        purchaseInfo.getTrainID(), purchaseInfo.getDepartureStation(), arrivalStation,
-                        -purchaseInfo.getType(), duration, price, purchaseInfo.getDepartureTime()
-                ));
+                // 删除订单记录（使用数据库中实际存储的type值，即正数）
+                tripManager.removeTrip(purchaseInfo.getUserID().value(), targetTrip);
+                
+                log.info("退票成功：用户 {} 车次 {} 出发站 {}", 
+                    purchaseInfo.getUserID().value(), 
+                    purchaseInfo.getTrainID(), 
+                    purchaseInfo.getDepartureStation().value());
                 System.out.println("Refund succeeded.");
                 return true;
             } catch (java.sql.SQLException e) {
                 log.error("数据库操作异常", e);
-                System.out.println("数据库操作异常");
+                System.out.println("数据库操作异常: " + e.getMessage());
+                return false;
+            } catch (Exception e) {
+                log.error("退票处理异常", e);
+                System.out.println("退票处理异常: " + e.getMessage());
                 return false;
             }
         }
@@ -242,35 +292,17 @@ public class TrainSystem {
         while (waitingList.isBusy()) trySatisfyOrder();
         waitingList.addToWaitingList(new PurchaseInfo(currentUser.getUserID(), new TrainID(trainID.toString()), departureTime, departureStation, -1));
         System.out.println("Refunding request has added to waiting list.");
+        // 立即处理队列
+        while (trySatisfyOrder()) {} // 处理完所有可处理订单
     }
 
     // ===== Part 4: 路线查询 =====
-    public void findAllRoute(StationID departureID, StationID arrivalID) {
-        // 检查站点ID是否有效
-        if (departureID.value() < 0 || arrivalID.value() < 0) {
-            System.out.println("Station not found. Please check station names.");
-            return;
-        }
-        
-        if (!railwayGraph.checkStationAccessibility(departureID.value(), arrivalID.value())) {
-            System.out.println("Disconnected. No route found.");
-            return;
-        }
-        railwayGraph.displayRoute(departureID.value(), arrivalID.value());
+    public String findAllRoute(StationID departureID, StationID arrivalID) {
+        return railwayGraph.displayRoute(departureID.value(), arrivalID.value());
     }
 
-    public void findBestRoute(StationID departureID, StationID arrivalID, int preference) {
-        // 检查站点ID是否有效
-        if (departureID.value() < 0 || arrivalID.value() < 0) {
-            System.out.println("Station not found. Please check station names.");
-            return;
-        }
-        
-        if (!railwayGraph.checkStationAccessibility(departureID.value(), arrivalID.value())) {
-            System.out.println("Disconnected. No route found.");
-            return;
-        }
-        railwayGraph.shortestPath(departureID.value(), arrivalID.value(), preference);
+    public String findBestRoute(StationID departureID, StationID arrivalID, int preference) {
+        return railwayGraph.shortestPath(departureID.value(), arrivalID.value(), preference);
     }
 
     // ===== Part 5: 用户管理 =====

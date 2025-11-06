@@ -156,10 +156,11 @@ public class CommandParser {
                         break;
 
                     case "display_route":
-                        trainSystem.findAllRoute(
+                        String routeResult = trainSystem.findAllRoute(
                                 stationManager.getStationID(argMap.get('s')),
                                 stationManager.getStationID(argMap.get('t'))
                         );
+                        System.out.println(routeResult);
                         break;
 
                     case "query_best_path":
@@ -282,11 +283,12 @@ public class CommandParser {
         }
 
         if (preference != -1) {
-            trainSystem.findBestRoute(
+            String bestRouteResult = trainSystem.findBestRoute(
                     stationManager.getStationID(argMap.get('s')),
                     stationManager.getStationID(argMap.get('t')),
                     preference
             );
+            System.out.println(bestRouteResult);
         }
     }
 }
