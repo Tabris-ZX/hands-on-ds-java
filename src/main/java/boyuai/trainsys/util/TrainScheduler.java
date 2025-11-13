@@ -1,8 +1,7 @@
-package boyuai.trainsys.core;
+package boyuai.trainsys.util;
 
-import boyuai.trainsys.util.Time;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.util.Types.*;
-import boyuai.trainsys.config.Config;
 import lombok.Data;
 
 import java.util.Objects;
@@ -51,12 +50,12 @@ public class TrainScheduler implements Comparable<TrainScheduler> {
     /**
      * 构造函数
      * <p>
-     * 初始化固定大小的数组，容量为 {@link Config#MAX_PASSING_STATION_NUMBER}
+     * 初始化固定大小的数组，容量为 {@link StaticConfig#MAX_PASSING_STATION_NUMBER}
      */
     public TrainScheduler() {
-        this.stations = new StationID[Config.MAX_PASSING_STATION_NUMBER];
-        this.duration = new int[Config.MAX_PASSING_STATION_NUMBER];
-        this.price = new int[Config.MAX_PASSING_STATION_NUMBER];
+        this.stations = new StationID[StaticConfig.MAX_PASSING_STATION_NUMBER];
+        this.duration = new int[StaticConfig.MAX_PASSING_STATION_NUMBER];
+        this.price = new int[StaticConfig.MAX_PASSING_STATION_NUMBER];
         this.passingStationNum = 0;
     }
 
@@ -68,7 +67,7 @@ public class TrainScheduler implements Comparable<TrainScheduler> {
      * @param station 要添加的站点ID
      */
     public void addStation(StationID station) {
-        if (passingStationNum < Config.MAX_PASSING_STATION_NUMBER) {
+        if (passingStationNum < StaticConfig.MAX_PASSING_STATION_NUMBER) {
             stations[passingStationNum++] = station;
         }
     }

@@ -40,6 +40,10 @@
               <el-icon><MapLocation /></el-icon>
               <span>路线查询</span>
             </el-menu-item>
+            <el-menu-item index="/train-list">
+              <el-icon><List /></el-icon>
+              <span>车次一览</span>
+            </el-menu-item>
             <template v-if="userInfo.privilege >= 10">
               <el-menu-item index="/train-management">
                 <el-icon><Management /></el-icon>

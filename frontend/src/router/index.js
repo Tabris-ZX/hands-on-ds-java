@@ -7,6 +7,7 @@ import MyOrders from '../views/MyOrders.vue'
 import RouteQuery from '../views/RouteQuery.vue'
 import TrainManagement from '../views/TrainManagement.vue'
 import TicketManagement from '../views/TicketManagement.vue'
+import TrainListView from '../views/TrainListView.vue'
 
 const routes = [
   {
@@ -52,6 +53,11 @@ const routes = [
     path: '/ticket-management',
     name: 'TicketManagement',
     component: TicketManagement
+  },
+  {
+    path: '/train-list',
+    name: 'TrainListView',
+    component: TrainListView
   }
 ]
 

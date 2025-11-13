@@ -1,7 +1,8 @@
 package boyuai.trainsys.service;
 
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.core.TrainSystem;
-import boyuai.trainsys.core.TrainScheduler;
+import boyuai.trainsys.util.TrainScheduler;
 import boyuai.trainsys.dto.*;
 import boyuai.trainsys.info.TripInfo;
 import boyuai.trainsys.info.UserInfo;
@@ -193,12 +194,16 @@ public class TrainSystemService {
         trainSystem.setCurrentUser(user);
         
         try {
+            if (trainId == null || trainId.trim().isEmpty()) {
+                return ApiResponse.error("车次ID不能为空");
+            }
+            
             TrainScheduler scheduler = trainSystem.getSchedulerManager().getScheduler(
-                new FixedString(trainId)
+                new FixedString(trainId.trim())
             );
             
             if (scheduler == null) {
-                return ApiResponse.error("车次不存在");
+                return ApiResponse.error("车次不存在: " + trainId);
             }
             
             TrainSchedulerDTO dto = new TrainSchedulerDTO();
@@ -207,25 +212,60 @@ public class TrainSystemService {
             dto.setStartTime(scheduler.getStartTime() != null ? scheduler.getStartTime().toString() : "");
             
             List<String> stations = new ArrayList<>();
-            for (int i = 0; i < scheduler.getPassingStationNum(); i++) {
-                StationID stationId = scheduler.getStation(i);
-                String stationName = stationManager.idToName(stationId.value());
-                stations.add(stationName);
+            int passingStationNum = scheduler.getPassingStationNum();
+            for (int i = 0; i < passingStationNum; i++) {
+                try {
+                    StationID stationId = scheduler.getStation(i);
+                    if (stationId == null) {
+                        log.warn("车次 {} 的第 {} 个站点ID为null", trainId, i);
+                        stations.add("未知站点");
+                        continue;
+                    }
+                    String stationName = stationManager.idToName(stationId.value());
+                    if (stationName == null) {
+                        log.warn("站点ID {} 不存在于站点列表中", stationId.value());
+                        stations.add("站点ID:" + stationId.value());
+                    } else {
+                        stations.add(stationName);
+                    }
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    log.error("车次 {} 的站点索引 {} 越界，总站点数: {}", trainId, i, passingStationNum, e);
+                    stations.add("索引越界");
+                } catch (Exception e) {
+                    log.error("获取车次 {} 的第 {} 个站点信息时出错", trainId, i, e);
+                    stations.add("获取失败");
+                }
             }
             dto.setStations(stations);
             
             List<Integer> durations = new ArrayList<>();
             List<Integer> prices = new ArrayList<>();
-            for (int i = 0; i + 1 < scheduler.getPassingStationNum(); i++) {
-                durations.add(scheduler.getDuration(i));
-                prices.add(scheduler.getPrice(i));
+            for (int i = 0; i + 1 < passingStationNum; i++) {
+                try {
+                    durations.add(scheduler.getDuration(i));
+                    prices.add(scheduler.getPrice(i));
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    log.error("车次 {} 的区段索引 {} 越界，总站点数: {}", trainId, i, passingStationNum, e);
+                    durations.add(0);
+                    prices.add(0);
+                } catch (Exception e) {
+                    log.error("获取车次 {} 的第 {} 个区段信息时出错", trainId, i, e);
+                    durations.add(0);
+                    prices.add(0);
+                }
             }
             dto.setDurations(durations);
             dto.setPrices(prices);
             
             return ApiResponse.success(dto);
+        } catch (SQLException e) {
+            log.error("查询车次数据库异常: trainId={}", trainId, e);
+            return ApiResponse.error("查询车次失败: 数据库错误 - " + e.getMessage());
+        } catch (NumberFormatException e) {
+            log.error("查询车次数据格式异常: trainId={}", trainId, e);
+            return ApiResponse.error("查询车次失败: 数据格式错误 - " + e.getMessage());
         } catch (Exception e) {
-            log.error("查询车次异常", e);
+            log.error("查询车次异常: trainId={}", trainId, e);
             return ApiResponse.error("查询车次失败: " + e.getMessage());
         }
     }
@@ -536,6 +576,110 @@ public class TrainSystemService {
         } catch (Exception e) {
             log.error("获取站点列表异常", e);
             return ApiResponse.error("获取站点列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取车票列表
+     * 普通用户只能看到已发售的车票，管理员可以看到所有车票
+     */
+    public ApiResponse<List<TicketInfoDTO>> getTicketList(String sessionId) {
+        UserInfo user = getCurrentUser(sessionId);
+        if (user == null) {
+            return ApiResponse.error(401, "未登录");
+        }
+        
+        trainSystem.setCurrentUser(user);
+        
+        try {
+            List<Object[]> tickets;
+            boolean isAdmin = user.getPrivilege() >= StaticConfig.ADMIN_PRIVILEGE;
+            
+            if (isAdmin) {
+                // 管理员可以看到所有车票
+                tickets = trainSystem.getTicketManager().getAllTickets();
+            } else {
+                // 普通用户只能看到已发售的车票
+                tickets = trainSystem.getTicketManager().getAllReleasedTickets();
+            }
+            
+            List<TicketInfoDTO> dtos = new ArrayList<>();
+            for (Object[] ticket : tickets) {
+                TicketInfoDTO dto = new TicketInfoDTO();
+                dto.setTrainId((String) ticket[0]);
+                dto.setDepartureTime((String) ticket[1]);
+                dto.setDepartureStation(stationManager.idToName((Integer) ticket[2]));
+                dto.setArrivalStation(stationManager.idToName((Integer) ticket[3]));
+                dto.setSeatNum((Integer) ticket[4]);
+                dto.setPrice((Integer) ticket[5]);
+                dto.setDuration((Integer) ticket[6]);
+                dtos.add(dto);
+            }
+            
+            return ApiResponse.success(dtos);
+        } catch (Exception e) {
+            log.error("获取车票列表异常", e);
+            return ApiResponse.error("获取车票列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有车次调度计划列表
+     */
+    public ApiResponse<List<TrainSchedulerDTO>> getAllTrainSchedulers(String sessionId) {
+        UserInfo user = getCurrentUser(sessionId);
+        if (user == null) {
+            return ApiResponse.error(401, "未登录");
+        }
+        
+        trainSystem.setCurrentUser(user);
+        
+        try {
+            List<TrainScheduler> schedulers = trainSystem.getSchedulerManager().getAllSchedulers();
+            List<TrainSchedulerDTO> dtos = new ArrayList<>();
+            
+            for (TrainScheduler scheduler : schedulers) {
+                TrainSchedulerDTO dto = new TrainSchedulerDTO();
+                dto.setTrainId(scheduler.getTrainID().toString());
+                dto.setSeatNum(scheduler.getSeatNum());
+                dto.setStartTime(scheduler.getStartTime() != null ? scheduler.getStartTime().toString() : "");
+                
+                List<String> stations = new ArrayList<>();
+                for (int i = 0; i < scheduler.getPassingStationNum(); i++) {
+                    StationID stationId = scheduler.getStation(i);
+                    if (stationId != null) {
+                        String stationName = stationManager.idToName(stationId.value());
+                        if (stationName == null) {
+                            stations.add("站点ID:" + stationId.value());
+                        } else {
+                            stations.add(stationName);
+                        }
+                    }
+                }
+                dto.setStations(stations);
+                
+                List<Integer> durations = new ArrayList<>();
+                List<Integer> prices = new ArrayList<>();
+                for (int i = 0; i + 1 < scheduler.getPassingStationNum(); i++) {
+                    try {
+                        durations.add(scheduler.getDuration(i));
+                        prices.add(scheduler.getPrice(i));
+                    } catch (Exception e) {
+                        log.warn("获取车次 {} 的第 {} 个区段信息时出错", scheduler.getTrainID(), i, e);
+                        durations.add(0);
+                        prices.add(0);
+                    }
+                }
+                dto.setDurations(durations);
+                dto.setPrices(prices);
+                
+                dtos.add(dto);
+            }
+            
+            return ApiResponse.success(dtos);
+        } catch (Exception e) {
+            log.error("获取车次列表异常", e);
+            return ApiResponse.error("获取车次列表失败: " + e.getMessage());
         }
     }
 }

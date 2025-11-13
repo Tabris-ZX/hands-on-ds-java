@@ -1,6 +1,6 @@
 package boyuai.trainsys.manager;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.info.TripInfo;
 import java.sql.*;
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class TripManager {
     /** 数据库文件路径 */
-    private final String dbPath = Config.DATABASE_PATH;
+    private final String dbPath = StaticConfig.DATABASE_PATH;
     
     /** 数据库连接对象 */
     private final Connection conn;
@@ -44,7 +44,7 @@ public class TripManager {
      * @throws SQLException 如果数据库连接失败或表创建失败
      */
     public TripManager() throws SQLException {
-        conn = DriverManager.getConnection(Config.CONNECT_URL);
+        conn = DriverManager.getConnection(StaticConfig.CONNECT_URL);
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS trip_info (" +

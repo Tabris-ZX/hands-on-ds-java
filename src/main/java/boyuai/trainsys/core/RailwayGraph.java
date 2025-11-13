@@ -4,7 +4,7 @@ import boyuai.trainsys.info.RouteSectionInfo;
 import boyuai.trainsys.datastructure.AdjListGraph;
 import boyuai.trainsys.datastructure.DisjointSet;
 import boyuai.trainsys.datastructure.SeqList;
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.manager.RouteSectionManager;
 import boyuai.trainsys.util.Types.*;
 import lombok.Data;
@@ -59,10 +59,10 @@ public class RailwayGraph {
      */
     public RailwayGraph(RouteSectionManager routeSectionManager) {
         this.routeSectionManager = routeSectionManager;
-        this.routeGraph = new AdjListGraph<>(Config.MAX_STATIONID);
-        this.adjacency = new ArrayList<>(Config.MAX_STATIONID);
-        for (int i = 0; i < Config.MAX_STATIONID; i++) adjacency.add(new ArrayList<>());
-        this.stationSet = new DisjointSet(Config.MAX_STATIONID);
+        this.routeGraph = new AdjListGraph<>(StaticConfig.MAX_STATIONID);
+        this.adjacency = new ArrayList<>(StaticConfig.MAX_STATIONID);
+        for (int i = 0; i < StaticConfig.MAX_STATIONID; i++) adjacency.add(new ArrayList<>());
+        this.stationSet = new DisjointSet(StaticConfig.MAX_STATIONID);
         this.routeSectionPool = new SeqList<>();
     }
 
@@ -372,9 +372,9 @@ public class RailwayGraph {
      */
     public void refreshConnectivityFromDB() throws java.sql.SQLException {
         // 清空邻接表、内存池和并查集
-        this.routeGraph = new AdjListGraph<>(Config.MAX_STATIONID);
+        this.routeGraph = new AdjListGraph<>(StaticConfig.MAX_STATIONID);
         for (int i = 0; i < adjacency.size(); i++) adjacency.get(i).clear();
-        this.stationSet = new DisjointSet(Config.MAX_STATIONID);
+        this.stationSet = new DisjointSet(StaticConfig.MAX_STATIONID);
         this.routeSectionPool = new SeqList<>();
         // 记录实际出现过的所有站点id
         java.util.HashSet<Integer> usedStations = new java.util.HashSet<>();

@@ -1,6 +1,6 @@
 package boyuai.trainsys.manager;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.util.Types.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,7 +32,7 @@ public class StationManager {
     private final Map<String, Integer> nameToID;
     
     /** 数据库文件路径 */
-    private final String dbPath = Config.DATABASE_PATH;
+    private final String dbPath = StaticConfig.DATABASE_PATH;
     
     /** 数据库连接对象 */
     private Connection conn;
@@ -62,7 +62,7 @@ public class StationManager {
      */
     private void loadStationsFromDB() {
         try {
-            conn = DriverManager.getConnection(Config.CONNECT_URL);
+            conn = DriverManager.getConnection(StaticConfig.CONNECT_URL);
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("CREATE TABLE IF NOT EXISTS station (id INTEGER PRIMARY KEY, name TEXT)");
             ResultSet rs = stmt.executeQuery("SELECT id, name FROM station");

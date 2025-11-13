@@ -13,10 +13,10 @@ package boyuai.trainsys.config;
  * <p>
  * 该类为 final 类，不可被继承，构造函数私有，不可实例化
  */
-public final class Config {
+public final class StaticConfig {
 
     /** 私有构造函数，防止实例化 */
-    private Config() {}
+    private StaticConfig() {}
 
     /** 车次ID最大长度 */
     public static final int MAX_TRAINID_LEN = 20;

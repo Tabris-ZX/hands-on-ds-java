@@ -1,6 +1,6 @@
 package boyuai.trainsys.core;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.info.PurchaseInfo;
 import boyuai.trainsys.info.TripInfo;
 import boyuai.trainsys.info.UserInfo;
@@ -13,6 +13,7 @@ import boyuai.trainsys.manager.UserManager;
 import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.PrioritizedWaitingList;
+import boyuai.trainsys.util.TrainScheduler;
 import boyuai.trainsys.util.Types.StationID;
 import boyuai.trainsys.util.Types.TrainID;
 import boyuai.trainsys.util.Types.UserID;
@@ -66,22 +67,22 @@ public class TrainSystem {
         if (userManager.existUser(adminID)) {
             currentUser = userManager.findUser(adminID);
         } else {
-            currentUser = new UserInfo(adminID, "admin", "admin", Config.ADMIN_PRIVILEGE);
-            userManager.insertUser(adminID, "admin", "admin", Config.ADMIN_PRIVILEGE);
+            currentUser = new UserInfo(adminID, "admin", "admin", StaticConfig.ADMIN_PRIVILEGE);
+            userManager.insertUser(adminID, "admin", "admin", StaticConfig.ADMIN_PRIVILEGE);
         }
     }
 
     // ===== Part 1: 运行计划管理（管理员） =====
     public void addTrainScheduler(FixedString trainID, int seatNum, String startTime, int passingStationNumber,
                                   int[] stations, int[] duration, int[] price) {
-        if (currentUser == null || currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
+        if (currentUser == null || currentUser.getPrivilege() < StaticConfig.ADMIN_PRIVILEGE) {
             log.warn("添加车次权限不足，用户: {}", currentUser != null ? currentUser.getUserID().value() : "null");
             throw new RuntimeException("权限不足，需要管理员权限");
         }
         
         // 检查站点ID是否有效
         for (int i = 0; i < passingStationNumber; i++) {
-            if (stations[i] < 0 || stations[i] >= Config.MAX_STATIONID) {
+            if (stations[i] < 0 || stations[i] >= StaticConfig.MAX_STATIONID) {
                 log.warn("无效的站点ID: {}", stations[i]);
                 throw new RuntimeException("无效的站点ID: " + stations[i] + "，站点不存在或ID超出范围");
             }
@@ -114,7 +115,7 @@ public class TrainSystem {
     }
 
     public void queryTrainScheduler(FixedString trainID) {
-        if (currentUser == null || currentUser.getPrivilege() < Config.ADMIN_PRIVILEGE) {
+        if (currentUser == null || currentUser.getPrivilege() < StaticConfig.ADMIN_PRIVILEGE) {
             System.out.println("Permission denied.");
             return;
         }
@@ -133,7 +134,7 @@ public class TrainSystem {
 
     // ===== Part 2: 票务管理（管理员） =====
     public void releaseTicket(TrainScheduler scheduler, Time departureTime) {
-        if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
+        if (currentUser != null && currentUser.getPrivilege() >= StaticConfig.ADMIN_PRIVILEGE) {
             if (scheduler == null) {
                 System.out.println("Train not found. Please add train first.");
                 return;
@@ -151,7 +152,7 @@ public class TrainSystem {
     }
 
     public void expireTicket(FixedString trainID, Time departureTime) {
-        if (currentUser != null && currentUser.getPrivilege() >= Config.ADMIN_PRIVILEGE) {
+        if (currentUser != null && currentUser.getPrivilege() >= StaticConfig.ADMIN_PRIVILEGE) {
             try {
                 ticketManager.expireTicket(trainID, departureTime);
                 System.out.println("Ticket expired.");

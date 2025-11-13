@@ -1,7 +1,7 @@
 package boyuai.trainsys.manager;
 
-import boyuai.trainsys.config.Config;
-import boyuai.trainsys.core.TrainScheduler;
+import boyuai.trainsys.config.StaticConfig;
+import boyuai.trainsys.util.TrainScheduler;
 import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.FixedString;
 import java.sql.*;
@@ -23,7 +23,7 @@ import java.sql.*;
  */
 public class TicketManager {
     /** 数据库文件路径 */
-    private final String dbPath = Config.DATABASE_PATH;
+    private final String dbPath = StaticConfig.DATABASE_PATH;
     
     /** 数据库连接对象 */
     private final Connection conn;
@@ -46,7 +46,7 @@ public class TicketManager {
      * @throws SQLException 如果数据库连接失败或表创建失败
      */
     public TicketManager() throws SQLException {
-        conn = DriverManager.getConnection(Config.CONNECT_URL);
+        conn = DriverManager.getConnection(StaticConfig.CONNECT_URL);
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS ticket_info (" +
@@ -57,7 +57,8 @@ public class TicketManager {
                     "arrival_station INTEGER, " +
                     "seat_num INTEGER, " +
                     "price INTEGER, " +
-                    "duration INTEGER)"
+                    "duration INTEGER, " +
+                    "UNIQUE(train_id, departure_time, departure_station))"
         );
     }
 
@@ -137,8 +138,9 @@ public class TicketManager {
             // 计算该站的出发时间
             Time departureTime = scheduler.getDepartureTimeAt(i, baseTime);
             
+            // 使用 INSERT OR REPLACE 避免重复数据
             PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO ticket_info (train_id, departure_time, departure_station, arrival_station, seat_num, price, duration) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT OR REPLACE INTO ticket_info (train_id, departure_time, departure_station, arrival_station, seat_num, price, duration) VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
             ps.setString(1, scheduler.getTrainID().toString());
             ps.setString(2, departureTime.toString());
@@ -168,5 +170,65 @@ public class TicketManager {
         ps.setString(2, departureTime.toString());
         ps.executeUpdate();
         ps.close();
+    }
+
+    /**
+     * 查询所有已发售的车票
+     * <p>
+     * 返回所有已发售的车票信息（seat_num >= 0 表示已发售）
+     * 
+     * @return 车票信息列表，每个元素包含 [train_id, departure_time, departure_station, arrival_station, seat_num, price, duration]
+     * @throws SQLException 如果查询操作失败
+     */
+    public java.util.List<Object[]> getAllReleasedTickets() throws SQLException {
+        java.util.List<Object[]> tickets = new java.util.ArrayList<>();
+        PreparedStatement ps = conn.prepareStatement(
+                "SELECT train_id, departure_time, departure_station, arrival_station, seat_num, price, duration " +
+                "FROM ticket_info WHERE seat_num >= 0 ORDER BY train_id, departure_time, departure_station");
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            Object[] ticket = new Object[7];
+            ticket[0] = rs.getString("train_id");
+            ticket[1] = rs.getString("departure_time");
+            ticket[2] = rs.getInt("departure_station");
+            ticket[3] = rs.getInt("arrival_station");
+            ticket[4] = rs.getInt("seat_num");
+            ticket[5] = rs.getInt("price");
+            ticket[6] = rs.getInt("duration");
+            tickets.add(ticket);
+        }
+        rs.close();
+        ps.close();
+        return tickets;
+    }
+
+    /**
+     * 查询所有车票（包括已发售和未发售的，管理员使用）
+     * <p>
+     * 返回所有车票信息
+     * 
+     * @return 车票信息列表，每个元素包含 [train_id, departure_time, departure_station, arrival_station, seat_num, price, duration]
+     * @throws SQLException 如果查询操作失败
+     */
+    public java.util.List<Object[]> getAllTickets() throws SQLException {
+        java.util.List<Object[]> tickets = new java.util.ArrayList<>();
+        PreparedStatement ps = conn.prepareStatement(
+                "SELECT train_id, departure_time, departure_station, arrival_station, seat_num, price, duration " +
+                "FROM ticket_info ORDER BY train_id, departure_time, departure_station");
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            Object[] ticket = new Object[7];
+            ticket[0] = rs.getString("train_id");
+            ticket[1] = rs.getString("departure_time");
+            ticket[2] = rs.getInt("departure_station");
+            ticket[3] = rs.getInt("arrival_station");
+            ticket[4] = rs.getInt("seat_num");
+            ticket[5] = rs.getInt("price");
+            ticket[6] = rs.getInt("duration");
+            tickets.add(ticket);
+        }
+        rs.close();
+        ps.close();
+        return tickets;
     }
 }

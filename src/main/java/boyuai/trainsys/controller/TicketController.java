@@ -77,5 +77,14 @@ public class TicketController {
         }
         return trainSystemService.queryMyOrders(sessionId.substring(7));
     }
+    
+    @GetMapping("/list")
+    public ApiResponse<List<TicketInfoDTO>> getTicketList(
+            @RequestHeader(value = "Authorization", required = false) String sessionId) {
+        if (sessionId == null || !sessionId.startsWith("Bearer ")) {
+            return ApiResponse.error(401, "未登录");
+        }
+        return trainSystemService.getTicketList(sessionId.substring(7));
+    }
 }
 

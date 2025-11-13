@@ -1,6 +1,6 @@
 package boyuai.trainsys.info;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.util.Types.UserID;
 import lombok.Data;
 import lombok.Getter;
@@ -55,8 +55,8 @@ public class UserInfo implements Comparable<UserInfo> {
     public void setUsername(String username) {
         if (username == null) {
             this.username = "";
-        } else if (username.length() > Config.MAX_USERNAME_LEN) {
-            this.username = username.substring(0, Config.MAX_USERNAME_LEN);
+        } else if (username.length() > StaticConfig.MAX_USERNAME_LEN) {
+            this.username = username.substring(0, StaticConfig.MAX_USERNAME_LEN);
         } else {
             this.username = username;
         }
@@ -65,8 +65,8 @@ public class UserInfo implements Comparable<UserInfo> {
     public void setPassword(String password) {
         if (password == null) {
             this.password = "";
-        } else if (password.length() > Config.MAX_PASSWORD_LEN) {
-            this.password = password.substring(0, Config.MAX_PASSWORD_LEN);
+        } else if (password.length() > StaticConfig.MAX_PASSWORD_LEN) {
+            this.password = password.substring(0, StaticConfig.MAX_PASSWORD_LEN);
         } else {
             this.password = password;
         }

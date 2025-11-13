@@ -1,7 +1,7 @@
 package boyuai.trainsys.manager;
 
-import boyuai.trainsys.config.Config;
-import boyuai.trainsys.core.TrainScheduler;
+import boyuai.trainsys.config.StaticConfig;
+import boyuai.trainsys.util.TrainScheduler;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.Types.*;
@@ -24,7 +24,7 @@ import java.sql.*;
  */
 public class SchedulerManager {
     /** 数据库文件路径 */
-    private final String dbPath = Config.DATABASE_PATH;
+    private final String dbPath = StaticConfig.DATABASE_PATH;
     
     /** 数据库连接对象 */
     private final Connection conn;
@@ -46,7 +46,7 @@ public class SchedulerManager {
      * @throws SQLException 如果数据库连接失败或表创建失败
      */
     public SchedulerManager() throws SQLException {
-        conn = DriverManager.getConnection(Config.CONNECT_URL);
+        conn = DriverManager.getConnection(StaticConfig.CONNECT_URL);
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS train_scheduler (" +
@@ -80,8 +80,9 @@ public class SchedulerManager {
         String durationStr = joinIntArray(duration, passingStationNumber-1);
         String priceStr = joinIntArray(price, passingStationNumber-1);
 
+        // 使用 INSERT OR REPLACE 避免重复数据
         PreparedStatement ps = conn.prepareStatement(
-            "INSERT INTO train_scheduler(train_id, seat_num, start_time, passing_num, stations, duration, price) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            "INSERT OR REPLACE INTO train_scheduler(train_id, seat_num, start_time, passing_num, stations, duration, price) VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
         ps.setString(1, trainID.toString());
         ps.setInt(2, seatNum);
@@ -175,6 +176,40 @@ public class SchedulerManager {
             sb.append(arr[i]);
         }
         return sb.toString();
+    }
+
+    /**
+     * 查询所有车次调度计划
+     * 
+     * @return 所有调度计划对象列表
+     * @throws SQLException 如果查询操作失败
+     */
+    public java.util.List<TrainScheduler> getAllSchedulers() throws SQLException {
+        java.util.List<TrainScheduler> schedulers = new java.util.ArrayList<>();
+        PreparedStatement ps = conn.prepareStatement("SELECT * FROM train_scheduler ORDER BY train_id");
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            TrainScheduler scheduler = new TrainScheduler();
+            scheduler.setTrainID(new TrainID(rs.getString("train_id")));
+            scheduler.setSeatNum(rs.getInt("seat_num"));
+            
+            // 读取首发时间（格式 HH:MM）
+            String startTimeStr = rs.getString("start_time");
+            if (startTimeStr != null && !startTimeStr.isEmpty()) {
+                // 将HH:MM转换为Time对象（使用默认日期01-01）
+                scheduler.setStartTime(new Time(startTimeStr + " 01-01"));
+            }
+            
+            scheduler.setDuration(parseIntArray(rs.getString("duration")));
+            scheduler.setPrice(parseIntArray(rs.getString("price")));
+            // 还原站点
+            int[] stationIDs = parseIntArray(rs.getString("stations"));
+            for (int id : stationIDs) scheduler.addStation(new StationID(id));
+            schedulers.add(scheduler);
+        }
+        rs.close();
+        ps.close();
+        return schedulers;
     }
 
     /**

@@ -1,6 +1,6 @@
 package boyuai.trainsys.util;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.datastructure.LinkQueue;
 import boyuai.trainsys.info.PurchaseInfo;
 
@@ -59,7 +59,7 @@ public class WaitingList {
      * @return 如果繁忙返回true
      */
     public boolean isBusy() {
-        return listSize >= Config.BUSY_STATE_THRESHOLD;
+        return listSize >= StaticConfig.BUSY_STATE_THRESHOLD;
     }
 
     /**

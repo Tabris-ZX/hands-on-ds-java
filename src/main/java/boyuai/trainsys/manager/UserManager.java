@@ -1,6 +1,6 @@
 package boyuai.trainsys.manager;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.info.UserInfo;
 import boyuai.trainsys.util.Types.UserID;
 
@@ -23,7 +23,7 @@ import java.sql.*;
 
 public class UserManager {
     /** 数据库文件路径 */
-    private final String dbPath = Config.DATABASE_PATH;
+    private final String dbPath = StaticConfig.DATABASE_PATH;
     
     /** 数据库连接对象 */
     private final Connection conn;
@@ -42,7 +42,7 @@ public class UserManager {
      * @throws SQLException 如果数据库连接失败或表创建失败
      */
     public UserManager() throws SQLException {
-        conn = DriverManager.getConnection(Config.CONNECT_URL);
+        conn = DriverManager.getConnection(StaticConfig.CONNECT_URL);
         Statement stmt = conn.createStatement();
         stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS user_info(" +
@@ -65,8 +65,9 @@ public class UserManager {
      * @throws SQLException 如果插入或更新操作失败
      */
     public void insertUser(UserID userID, String username, String password, int privilege) throws SQLException {
+        // 使用 INSERT OR REPLACE 避免重复数据
         PreparedStatement ps = conn.prepareStatement(
-                "INSERT  INTO user_info(user_id, username, password, privilege) VALUES (?, ?, ?, ?)");
+                "INSERT OR REPLACE INTO user_info(user_id, username, password, privilege) VALUES (?, ?, ?, ?)");
         ps.setLong(1, userID.value());
         ps.setString(2, username);
         ps.setString(3, password);
