@@ -40,13 +40,56 @@ public class Time implements Comparable<Time> {
     }
 
     /**
-     * 从字符串构造时间，假定格式为 "HH:MM MM-DD"
+     * 从字符串构造时间，支持两种格式：
+     * 1. "HH:MM_MM-DD"（下划线分隔，推荐）
+     * 2. "HH:MM MM-DD"（空格分隔，兼容）
      *
      * @param str 时间字符串
      */
     public Time(String str) {
+        // 1. 检查空值和长度（"HH:MM_MM-DD" 或 "HH:MM MM-DD" 长度都为11）
+        if (str == null || str.length() != 11) {
+            throw new IllegalArgumentException("时间格式必须是 HH:MM_MM-DD 或 HH:MM MM-DD（长度为11），当前输入: " + str);
+        }
+        
+        // 2. 检查分隔符位置
+        if (str.charAt(2) != ':') {
+            throw new IllegalArgumentException("时间格式错误，第3位必须是 ':'，当前输入: " + str);
+        }
+        
+        // 兼容空格和下划线两种分隔符
+        char separator = str.charAt(5);
+        if (separator != ' ' && separator != '_') {
+            throw new IllegalArgumentException("时间格式错误，第6位必须是空格或下划线，当前输入: " + str);
+        }
+        
+        // 3. 检查时分部分是否为数字
+        for (int i = 0; i < 5; i++) {
+            if (i == 2) continue;  // 跳过冒号
+            if (!Character.isDigit(str.charAt(i))) {
+                throw new IllegalArgumentException("时间部分包含非数字字符，当前输入: " + str);
+            }
+        }
+        
+        // 4. 解析小时和分钟
         this.hour = (str.charAt(0) - '0') * 10 + (str.charAt(1) - '0');
         this.min = (str.charAt(3) - '0') * 10 + (str.charAt(4) - '0');
+        
+        // 5. 验证小时范围（0-23）
+        if (hour < 0 || hour > 23) {
+            throw new IllegalArgumentException(
+                String.format("小时必须在 0-23 之间，当前: %d（输入: %s）", hour, str)
+            );
+        }
+        
+        // 6. 验证分钟范围（0-59）
+        if (min < 0 || min > 59) {
+            throw new IllegalArgumentException(
+                String.format("分钟必须在 0-59 之间，当前: %d（输入: %s）", min, str)
+            );
+        }
+        
+        // 7. 解析日期部分（Date构造函数会进行验证）
         this.date = new Date(str.substring(6)); // 解析 MM-DD
     }
 
@@ -63,7 +106,7 @@ public class Time implements Comparable<Time> {
             hour++;
             if (hour >= 24) {
                 hour -= 24;
-                date.addDays(1); // 跨日处理
+                date.addDaysInPlace(1); // 跨日处理
             }
         }
     }
@@ -81,7 +124,7 @@ public class Time implements Comparable<Time> {
             hour--;
             if (hour < 0) {
                 hour += 24;
-                date.subtractDays(1); // 跨日处理
+                date.subtractDaysInPlace(1); // 跨日处理
             }
         }
     }
@@ -172,11 +215,11 @@ public class Time implements Comparable<Time> {
     }
 
     /**
-     * @return 格式化时间字符串，格式为 "HH:MM MM-DD"
+     * @return 格式化时间字符串，格式为 "HH:MM_MM-DD"（使用下划线分隔，避免命令行解析问题）
      */
     @Override
     public String toString() {
-        return String.format("%02d:%02d %s", hour, min, date.toString());
+        return String.format("%02d:%02d_%s", hour, min, date.toString());
     }
 
     @Override

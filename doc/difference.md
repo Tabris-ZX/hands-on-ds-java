@@ -8,6 +8,7 @@
 
 ### 代码部分差异
 1. **java有垃圾回收器,自动垃圾回收机制,不需要写析构函数**,例如:
+
 ```cpp
 //cpp
 PurchaseInfo() = default;
@@ -17,7 +18,6 @@ PurchaseInfo(const UserID userID, const TrainID &trainID, const Date &date, cons
     ... //省略其他成员变量
 }
 ~PurchaseInfo() = default; //这个就是析构函数
-
 ```
 ```java
 //java
@@ -162,3 +162,21 @@ public class User {
 ```
 
 ### 数据存储部分差异
+
+1.为了方便查找阅读,java中的数据直接使用sqlite存储,manager层主要负责数据库的读写
+```java
+public class UserManager {
+    private final Connection connection;
+    public UserManager(Connection connection) {
+        this.connection = connection;
+    }
+    public void addUser(String userID, String password) throws SQLException {
+        String sql = "INSERT INTO users (userID, password) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, userID);
+            pstmt.setString(2, password);
+            pstmt.executeUpdate();
+        }
+    }
+}
+```

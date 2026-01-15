@@ -1,6 +1,6 @@
 package boyuai.trainsys.util;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,8 +22,8 @@ public class FixedString implements Comparable<FixedString> {
     public FixedString(String str) {
         if (str == null) {
             this.value = "";
-        } else if (str.length() > Config.MAX_STRING_LENGTH) {
-            this.value = str.substring(0, Config.MAX_STRING_LENGTH);
+        } else if (str.length() > StaticConfig.MAX_STRING_LENGTH) {
+            this.value = str.substring(0, StaticConfig.MAX_STRING_LENGTH);
         } else {
             this.value = str;
         }

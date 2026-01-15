@@ -1,6 +1,6 @@
 package boyuai.trainsys.util;
 
-import boyuai.trainsys.config.Config;
+import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.datastructure.PriorityQueue;
 import boyuai.trainsys.info.PurchaseInfo; /**
  * 优先级等待列表
@@ -83,7 +83,7 @@ public class PrioritizedWaitingList {
      * @return 如果繁忙返回true
      */
     public boolean isBusy() {
-        return listSize > Config.BUSY_STATE_THRESHOLD;
+        return listSize > StaticConfig.BUSY_STATE_THRESHOLD;
     }
 
     /**
