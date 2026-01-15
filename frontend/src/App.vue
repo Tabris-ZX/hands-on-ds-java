@@ -12,7 +12,7 @@
     <el-container>
       <el-aside width="200px">
         <el-menu
-          :default-active="activeMenu"
+          :default-active="activeMenu"end
           router
           class="el-menu-vertical">
           <el-menu-item index="/login" v-if="!userInfo">
