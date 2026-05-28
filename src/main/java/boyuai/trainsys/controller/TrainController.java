@@ -1,24 +1,23 @@
 package boyuai.trainsys.controller;
 
-import boyuai.trainsys.dto.*;
-import boyuai.trainsys.service.TrainSystemService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import boyuai.trainsys.dto.AddTrainRequest;
+import boyuai.trainsys.dto.ApiResponse;
+import boyuai.trainsys.dto.TrainSchedulerDTO;
+import boyuai.trainsys.service.TrainService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 车次管理控制器（管理员）
- */
-@Slf4j
 @RestController
 @RequestMapping("/api/train")
 public class TrainController {
-    
-    @Autowired
-    private TrainSystemService trainSystemService;
-    
+
+    private final TrainService trainService;
+
+    public TrainController(TrainService trainService) {
+        this.trainService = trainService;
+    }
+
     @PostMapping("/add")
     public ApiResponse<String> addTrain(
             @RequestHeader(value = "Authorization", required = false) String sessionId,
@@ -26,9 +25,9 @@ public class TrainController {
         if (sessionId == null || !sessionId.startsWith("Bearer ")) {
             return ApiResponse.error(401, "未登录");
         }
-        return trainSystemService.addTrain(sessionId.substring(7), request);
+        return trainService.addTrain(sessionId.substring(7), request);
     }
-    
+
     @GetMapping("/query/{trainId}")
     public ApiResponse<TrainSchedulerDTO> queryTrain(
             @RequestHeader(value = "Authorization", required = false) String sessionId,
@@ -36,16 +35,15 @@ public class TrainController {
         if (sessionId == null || !sessionId.startsWith("Bearer ")) {
             return ApiResponse.error(401, "未登录");
         }
-        return trainSystemService.queryTrain(sessionId.substring(7), trainId);
+        return trainService.queryTrain(sessionId.substring(7), trainId);
     }
-    
+
     @GetMapping("/list")
     public ApiResponse<List<TrainSchedulerDTO>> getAllTrains(
             @RequestHeader(value = "Authorization", required = false) String sessionId) {
         if (sessionId == null || !sessionId.startsWith("Bearer ")) {
             return ApiResponse.error(401, "未登录");
         }
-        return trainSystemService.getAllTrainSchedulers(sessionId.substring(7));
+        return trainService.getAllTrainSchedulers(sessionId.substring(7));
     }
 }
-

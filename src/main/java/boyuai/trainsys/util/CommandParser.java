@@ -3,7 +3,7 @@ package boyuai.trainsys.util;
 import boyuai.trainsys.core.RailwayGraph;
 import boyuai.trainsys.core.TrainSystem;
 import boyuai.trainsys.info.*;
-import boyuai.trainsys.manager.*;
+import boyuai.trainsys.dao.*;
 import boyuai.trainsys.util.Types.*;
 import boyuai.trainsys.datastructure.SeqList;
 import lombok.extern.slf4j.Slf4j;

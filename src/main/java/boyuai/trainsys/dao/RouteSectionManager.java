@@ -1,4 +1,4 @@
-package boyuai.trainsys.manager;
+package boyuai.trainsys.dao;
 
 import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.util.Types.TrainID;

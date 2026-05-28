@@ -5,7 +5,7 @@ import boyuai.trainsys.datastructure.AdjListGraph;
 import boyuai.trainsys.datastructure.DisjointSet;
 import boyuai.trainsys.datastructure.SeqList;
 import boyuai.trainsys.config.StaticConfig;
-import boyuai.trainsys.manager.RouteSectionManager;
+import boyuai.trainsys.dao.RouteSectionManager;
 import boyuai.trainsys.util.Types.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useStore } from '../store'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import TicketQuery from '../views/TicketQuery.vue'
@@ -12,7 +13,7 @@ import TrainListView from '../views/TrainListView.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    redirect: '/ticket-query'
   },
   {
     path: '/login',
@@ -66,18 +67,22 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
-  const sessionId = localStorage.getItem('sessionId')
+  const store = useStore()
   const publicPages = ['/login', '/register']
   const authRequired = !publicPages.includes(to.path)
-  
-  if (authRequired && !sessionId) {
+
+  if (authRequired && !store.sessionId) {
     next('/login')
-  } else {
-    next()
+    return
   }
+
+  if (store.sessionId && publicPages.includes(to.path)) {
+    next('/ticket-query')
+    return
+  }
+
+  next()
 })
 
 export default router
-
