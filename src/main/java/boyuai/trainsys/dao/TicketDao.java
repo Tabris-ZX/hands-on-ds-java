@@ -10,7 +10,6 @@ import boyuai.trainsys.util.TrainScheduler;
 import boyuai.trainsys.util.Types.StationID;
 import org.springframework.stereotype.Repository;
 
-import java.sql.SQLException;
 import java.util.List;
 
 @Repository
@@ -57,15 +56,15 @@ public class TicketDao {
         );
     }
 
-    public List<TripInfo> queryUserTrips(long userId) throws SQLException {
+    public List<TripInfo> queryUserTrips(long userId) {
         return systemContextDao.getTrainSystem().getTripManager().queryTrip(userId);
     }
 
-    public List<Object[]> getAllTickets() throws SQLException {
+    public List<Object[]> getAllTickets() {
         return systemContextDao.getTrainSystem().getTicketManager().getAllTickets();
     }
 
-    public List<Object[]> getAllReleasedTickets() throws SQLException {
+    public List<Object[]> getAllReleasedTickets() {
         return systemContextDao.getTrainSystem().getTicketManager().getAllReleasedTickets();
     }
 }

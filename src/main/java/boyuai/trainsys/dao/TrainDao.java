@@ -5,7 +5,6 @@ import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.TrainScheduler;
 import org.springframework.stereotype.Repository;
 
-import java.sql.SQLException;
 import java.util.List;
 
 @Repository
@@ -29,11 +28,11 @@ public class TrainDao {
         );
     }
 
-    public TrainScheduler getScheduler(String trainId) throws SQLException {
+    public TrainScheduler getScheduler(String trainId) {
         return systemContextDao.getTrainSystem().getSchedulerManager().getScheduler(new FixedString(trainId.trim()));
     }
 
-    public List<TrainScheduler> getAllSchedulers() throws SQLException {
+    public List<TrainScheduler> getAllSchedulers() {
         return systemContextDao.getTrainSystem().getSchedulerManager().getAllSchedulers();
     }
 }

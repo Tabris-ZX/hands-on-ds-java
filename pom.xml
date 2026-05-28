@@ -58,6 +58,11 @@
             <artifactId>spring-boot-starter</artifactId>
             <version>3.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>3.5.7</version>
+        </dependency>
 
         <!-- JUnit 5 - Jupiter API & Engine -->
         <dependency>

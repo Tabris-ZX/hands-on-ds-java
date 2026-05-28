@@ -3,16 +3,14 @@ package boyuai.trainsys.dao;
 import boyuai.trainsys.util.TrainSystem;
 import org.springframework.stereotype.Component;
 
-import java.sql.SQLException;
-
 @Component
 public class SystemContextDao {
 
     private final TrainSystem trainSystem;
     private final StationManager stationManager;
 
-    public SystemContextDao() throws SQLException {
-        this.trainSystem = new TrainSystem();
+    public SystemContextDao(TrainSystem trainSystem) {
+        this.trainSystem = trainSystem;
         this.stationManager = trainSystem.getStationManager();
     }
 
