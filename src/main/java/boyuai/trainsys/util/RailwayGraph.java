@@ -10,7 +10,8 @@ import boyuai.trainsys.util.Types.*;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * 铁路线路图
@@ -39,7 +40,7 @@ public class RailwayGraph {
     private AdjListGraph<RouteSectionInfo> routeGraph;
     
     /** 自维护的邻接表结构，便于遍历 */
-    private List<List<Edge>> adjacency;
+    private java.util.List<java.util.List<Edge>> adjacency;
 
     /** 并查集，用于快速判断站点连通性 */
     private DisjointSet stationSet;
@@ -327,7 +328,7 @@ public class RailwayGraph {
      */
     public void loadFromDB() throws java.sql.SQLException {
         // 从管理器加载所有区段
-        List<RouteSectionManager.RouteSectionData> sections = routeSectionManager.loadAllSections();
+        java.util.List<RouteSectionManager.RouteSectionData> sections = routeSectionManager.loadAllSections();
         for (RouteSectionManager.RouteSectionData sectionData : sections) {
             RouteSectionInfo section = new RouteSectionInfo(
                 sectionData.trainID,
@@ -377,9 +378,9 @@ public class RailwayGraph {
         this.stationSet = new DisjointSet(StaticConfig.MAX_STATIONID);
         this.routeSectionPool = new SeqList<>();
         // 记录实际出现过的所有站点id
-        java.util.HashSet<Integer> usedStations = new java.util.HashSet<>();
+        HashSet<Integer> usedStations = new HashSet<>();
         // 从管理器加载所有区段并重新建图和联通分量
-        List<RouteSectionManager.RouteSectionData> sections = routeSectionManager.loadAllSections();
+        java.util.List<RouteSectionManager.RouteSectionData> sections = routeSectionManager.loadAllSections();
         for (RouteSectionManager.RouteSectionData sectionData : sections) {
             int departureID = sectionData.departureID;
             int arrivalID = sectionData.arrivalID;
