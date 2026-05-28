@@ -1,6 +1,6 @@
 package boyuai.trainsys.dao;
 
-import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.model.UserInfo;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;

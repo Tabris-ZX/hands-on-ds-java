@@ -1,9 +1,9 @@
 package boyuai.trainsys.dao;
 
-import boyuai.trainsys.core.TrainSystem;
-import boyuai.trainsys.dto.LoginRequest;
-import boyuai.trainsys.dto.RegisterRequest;
-import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.model.LoginRequest;
+import boyuai.trainsys.model.RegisterRequest;
+import boyuai.trainsys.model.UserInfo;
+import boyuai.trainsys.util.TrainSystem;
 import org.springframework.stereotype.Repository;
 
 @Repository

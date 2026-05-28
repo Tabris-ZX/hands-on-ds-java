@@ -1,9 +1,9 @@
 package boyuai.trainsys.dao;
 
-import boyuai.trainsys.dto.BuyTicketRequest;
-import boyuai.trainsys.dto.RefundTicketRequest;
-import boyuai.trainsys.dto.TicketQueryRequest;
-import boyuai.trainsys.info.TripInfo;
+import boyuai.trainsys.model.BuyTicketRequest;
+import boyuai.trainsys.model.RefundTicketRequest;
+import boyuai.trainsys.model.TicketQueryRequest;
+import boyuai.trainsys.model.TripInfo;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.Time;
 import boyuai.trainsys.util.TrainScheduler;

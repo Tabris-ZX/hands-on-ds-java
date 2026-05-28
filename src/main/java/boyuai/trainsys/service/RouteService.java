@@ -1,8 +1,8 @@
 package boyuai.trainsys.service;
 
 import boyuai.trainsys.dao.RouteDao;
-import boyuai.trainsys.dto.ApiResponse;
-import boyuai.trainsys.dto.RouteQueryRequest;
+import boyuai.trainsys.model.ApiResponse;
+import boyuai.trainsys.model.RouteQueryRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

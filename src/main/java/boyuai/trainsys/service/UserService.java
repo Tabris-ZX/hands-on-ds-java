@@ -3,11 +3,11 @@ package boyuai.trainsys.service;
 import boyuai.trainsys.dao.SessionDao;
 import boyuai.trainsys.dao.SystemContextDao;
 import boyuai.trainsys.dao.UserDao;
-import boyuai.trainsys.dto.ApiResponse;
-import boyuai.trainsys.dto.LoginRequest;
-import boyuai.trainsys.dto.RegisterRequest;
-import boyuai.trainsys.dto.UserInfoDTO;
-import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.model.ApiResponse;
+import boyuai.trainsys.model.LoginRequest;
+import boyuai.trainsys.model.RegisterRequest;
+import boyuai.trainsys.model.UserInfoDTO;
+import boyuai.trainsys.model.UserInfo;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;

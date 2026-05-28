@@ -1,6 +1,6 @@
 package boyuai.trainsys.dao;
 
-import boyuai.trainsys.core.TrainSystem;
+import boyuai.trainsys.util.TrainSystem;
 import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;

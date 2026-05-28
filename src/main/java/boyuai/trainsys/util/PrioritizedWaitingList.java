@@ -1,8 +1,8 @@
 package boyuai.trainsys.util;
 
 import boyuai.trainsys.config.StaticConfig;
-import boyuai.trainsys.datastructure.PriorityQueue;
-import boyuai.trainsys.info.PurchaseInfo; /**
+import boyuai.trainsys.model.PurchaseInfo; /**
+import boyuai.trainsys.util.PriorityQueue;
  * 优先级等待列表
  */
 public class PrioritizedWaitingList {

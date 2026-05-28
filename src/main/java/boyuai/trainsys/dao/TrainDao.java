@@ -1,6 +1,6 @@
 package boyuai.trainsys.dao;
 
-import boyuai.trainsys.dto.AddTrainRequest;
+import boyuai.trainsys.model.AddTrainRequest;
 import boyuai.trainsys.util.FixedString;
 import boyuai.trainsys.util.TrainScheduler;
 import org.springframework.stereotype.Repository;

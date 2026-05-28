@@ -4,9 +4,9 @@ import boyuai.trainsys.config.StaticConfig;
 import boyuai.trainsys.dao.RouteDao;
 import boyuai.trainsys.dao.TicketDao;
 import boyuai.trainsys.dao.TrainDao;
-import boyuai.trainsys.dto.*;
-import boyuai.trainsys.info.TripInfo;
-import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.model.*;
+import boyuai.trainsys.model.TripInfo;
+import boyuai.trainsys.model.UserInfo;
 import boyuai.trainsys.util.TrainScheduler;
 import org.springframework.stereotype.Service;
 

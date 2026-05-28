@@ -1,11 +1,11 @@
 package boyuai.trainsys.util;
 
-import boyuai.trainsys.core.RailwayGraph;
-import boyuai.trainsys.core.TrainSystem;
-import boyuai.trainsys.info.*;
+import boyuai.trainsys.model.*;
+import boyuai.trainsys.util.RailwayGraph;
+import boyuai.trainsys.util.TrainSystem;
 import boyuai.trainsys.dao.*;
 import boyuai.trainsys.util.Types.*;
-import boyuai.trainsys.datastructure.SeqList;
+import boyuai.trainsys.util.SeqList;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;

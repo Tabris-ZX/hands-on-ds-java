@@ -1,7 +1,7 @@
 package boyuai.trainsys.dao;
 
 import boyuai.trainsys.config.StaticConfig;
-import boyuai.trainsys.info.TripInfo;
+import boyuai.trainsys.model.TripInfo;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

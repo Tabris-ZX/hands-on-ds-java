@@ -1,8 +1,8 @@
 package boyuai.trainsys.service;
 
-import boyuai.trainsys.dto.AddTrainRequest;
-import boyuai.trainsys.dto.ApiResponse;
-import boyuai.trainsys.dto.TrainSchedulerDTO;
+import boyuai.trainsys.model.AddTrainRequest;
+import boyuai.trainsys.model.ApiResponse;
+import boyuai.trainsys.model.TrainSchedulerDTO;
 import boyuai.trainsys.util.TrainScheduler;
 import boyuai.trainsys.util.Types.StationID;
 import org.springframework.stereotype.Service;

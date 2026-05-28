@@ -1,7 +1,7 @@
 package boyuai.trainsys.dao;
 
 import boyuai.trainsys.config.StaticConfig;
-import boyuai.trainsys.info.UserInfo;
+import boyuai.trainsys.model.UserInfo;
 import boyuai.trainsys.util.Types.UserID;
 
 import java.sql.*;

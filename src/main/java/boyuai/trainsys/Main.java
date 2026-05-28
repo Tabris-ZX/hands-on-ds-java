@@ -1,6 +1,6 @@
 package boyuai.trainsys;
 
-import boyuai.trainsys.core.TrainSystem;
+import boyuai.trainsys.util.TrainSystem;
 import boyuai.trainsys.util.CommandParser;
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,8 +1,8 @@
 package boyuai.trainsys.util;
 
 import boyuai.trainsys.config.StaticConfig;
-import boyuai.trainsys.datastructure.LinkQueue;
-import boyuai.trainsys.info.PurchaseInfo;
+import boyuai.trainsys.model.PurchaseInfo;
+import boyuai.trainsys.util.LinkQueue;
 
 /**
  * 等待列表（先进先出）
